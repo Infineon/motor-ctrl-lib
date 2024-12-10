@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.2" xml:lang="en-US">
+  <compounddef id="structmtb__stc__mcdi__pwm__t" kind="struct" language="C++" prot="public">
+    <compoundname>mtb_stc_mcdi_pwm_t</compoundname>
+    <includes local="no">mtb_mcdi.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmtb__stc__mcdi__pwm__t_1a7437a89dc1fcff47c6cdda36a7f4e247" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t mtb_stc_mcdi_pwm_t::idx</definition>
+        <argsstring></argsstring>
+        <name>idx</name>
+        <briefdescription>
+<para>PWM TCPWM counter index. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mcdi/mtb_mcdi.h" line="246" column="39" bodyfile="mcdi/mtb_mcdi.h" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmtb__stc__mcdi__pwm__t_1a691988bc33f0e8cb6a24755232a61704" prot="public" static="no" mutable="no">
+        <type>cy_stc_tcpwm_pwm_config_t const  *</type>
+        <definition>cy_stc_tcpwm_pwm_config_t const* mtb_stc_mcdi_pwm_t::cfg</definition>
+        <argsstring></argsstring>
+        <name>cfg</name>
+        <briefdescription>
+<para>PWM configuration structure (common for U/V/W phases) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mcdi/mtb_mcdi.h" line="247" column="38" bodyfile="mcdi/mtb_mcdi.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The single PWM sub-structure. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mcdi/mtb_mcdi.h" line="244" column="1" bodyfile="mcdi/mtb_mcdi.h" bodystart="245" bodyend="249"/>
+    <listofallmembers>
+      <member refid="structmtb__stc__mcdi__pwm__t_1a691988bc33f0e8cb6a24755232a61704" prot="public" virt="non-virtual"><scope>mtb_stc_mcdi_pwm_t</scope><name>cfg</name></member>
+      <member refid="structmtb__stc__mcdi__pwm__t_1a7437a89dc1fcff47c6cdda36a7f4e247" prot="public" virt="non-virtual"><scope>mtb_stc_mcdi_pwm_t</scope><name>idx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

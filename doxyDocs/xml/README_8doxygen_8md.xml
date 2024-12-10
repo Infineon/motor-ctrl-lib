@@ -1,0 +1,268 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.2" xml:lang="en-US">
+  <compounddef id="README_8doxygen_8md" kind="file" language="Markdown">
+    <compoundname>README.doxygen.md</compoundname>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline><highlight class="normal">#<sp/>Motor<sp/>Control<sp/>Library</highlight></codeline>
+<codeline></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">###<sp/>Overview</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">Motor<sp/>control<sp/>library<sp/>provides<sp/>implmenetation<sp/>of<sp/>various<sp/>algorithms<sp/>to<sp/>support<sp/>the<sp/>below<sp/>features<sp/><sp/>:</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">-<sp/>**Advanced<sp/>Features**</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>-<sp/>Supporting<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Rotor<sp/>Field<sp/>Oriented<sp/>(RFO)&lt;/span&gt;<sp/>control</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>-<sp/>Supporting<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Stator<sp/>Field<sp/>Oriented<sp/>(SFO)&lt;/span&gt;<sp/>control</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>-<sp/>Supporting<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Trapezoidal<sp/>or<sp/>Block<sp/>Commutation<sp/>(TBC)&lt;/span&gt;<sp/>control</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>**Floating<sp/>Point<sp/>Base**</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>**GUI<sp/>Integration**<sp/>:<sp/>Easy<sp/>monitoring<sp/>and<sp/>configuration<sp/>of<sp/>the<sp/>various<sp/>motor<sp/>control<sp/>parameters<sp/>can<sp/>be<sp/>done<sp/>via<sp/>the<sp/>GUI</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>-<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Configurator&lt;/span&gt;<sp/>view</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>-<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Test<sp/>Bench&lt;/span&gt;<sp/>view</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>-<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Tools&lt;/span&gt;<sp/>such<sp/>as<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Oscilloscope&lt;/span&gt;,<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;Motor<sp/>Profiler&lt;/span&gt;,<sp/>etc.</highlight></codeline>
+<codeline></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">###<sp/>Features</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">There<sp/>are<sp/>three<sp/>major<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;control<sp/>types&lt;/span&gt;<sp/>supported:</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Rotor<sp/>Field<sp/>Oriented<sp/>(RFO)<sp/>control</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Stator<sp/>Field<sp/>Oriented<sp/>(SFO)<sp/>control</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Trapezoidal<sp/>or<sp/>Block<sp/>Commutation<sp/>(TBC)<sp/>control</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">These<sp/>control<sp/>types<sp/>are<sp/>selectable<sp/>as<sp/>&lt;span<sp/>style=&quot;color:blue&quot;&gt;build<sp/>configurations&lt;/span&gt;<sp/><sp/>(via<sp/>Make<sp/>variables<sp/>CTRL_METHOD_RFO,<sp/>CTRL_METHOD_SFO<sp/>&amp;<sp/>CTRL_METHOD_TBC<sp/>).<sp/></highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">&lt;!--**Figure<sp/>1.<sp/>Control<sp/>Methods**<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>Control<sp/>Type<sp/><sp/><sp/>|<sp/>Controlled<sp/>Entity<sp/>|<sp/>Feedback<sp/>Type<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Startup<sp/>Method<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|:-----------------:|:-----------------:|:-------------:|:------------------------:|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>Open-loop<sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Voltage<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>N.A.<sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A.<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/>Rotor<sp/>Pre-Alignment<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/>Six<sp/>Pulse<sp/>Injection<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/>High<sp/>Frequency<sp/>Injection<sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Dyno<sp/>Mode<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/>Encoder<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Rotor<sp/>Pre-Alignment<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/>Hall<sp/>Sensor<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>TBC<sp/>in<sp/>BC<sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/>Hall<sp/>Sensor<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>TBC<sp/>in<sp/>TC<sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Current<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/>Hall<sp/>Sensor<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>SFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Torque<sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/>Rotor<sp/>Pre-Alignment<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>SFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Torque<sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/>Six<sp/>Pulse<sp/>Injection<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>SFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Torque<sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/>High<sp/>Frequency<sp/>Injection<sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>SFO<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Torque<sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Dyno<sp/>Mode<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/>FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/>Rotor<sp/>Pre-Alignment<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/>FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/>Six<sp/>Pulse<sp/>Injection<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/>FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/>High<sp/>Frequency<sp/>Injection<sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/>FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Sensorless<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/>Open-Loop<sp/>Volt/Hz<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/>Encoder<sp/><sp/><sp/><sp/>|<sp/><sp/><sp/>Rotor<sp/>Pre-Alignment<sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>FOC<sp/>in<sp/>RFO<sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/>Hall<sp/>Sensor<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>TBC<sp/>in<sp/>BC<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/>Hall<sp/>Sensor<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>TBC<sp/>in<sp/>TC<sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/>Speed<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/><sp/>Hall<sp/>Sensor<sp/><sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>N.A<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/>Achronym<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Expansion<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|:--------:|:---------------------------------|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>FOC<sp/><sp/><sp/>|<sp/>Field<sp/>Oriented<sp/>Control<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>RFO<sp/><sp/><sp/>|<sp/>Rotor<sp/>Frame<sp/>Orientation<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>SFO<sp/><sp/><sp/>|<sp/>Stator<sp/>Frame<sp/>Orientation<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>TBC<sp/><sp/><sp/>|<sp/>Trapezoidal<sp/>or<sp/>Block<sp/>Commutation<sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>BC<sp/><sp/><sp/><sp/>|<sp/>Block<sp/>Commutation<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;!--<sp/><sp/>|<sp/><sp/><sp/><sp/>TC<sp/><sp/><sp/><sp/>|<sp/>Trapezoidal<sp/>Commutation<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>|<sp/>--&gt;</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">**Figure<sp/>1.<sp/>Control<sp/>Methods**</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">&lt;table<sp/>style=&quot;border-collapse:<sp/>collapse;&quot;&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;th<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;<sp/>background-color:<sp/>#f0f0f0;&quot;&gt;Control<sp/>Type&lt;/th&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;th<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;<sp/>background-color:<sp/>#f0f0f0;&quot;&gt;Controlled<sp/>Entity&lt;/th&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;th<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;<sp/>background-color:<sp/>#f0f0f0;&quot;&gt;Feedback<sp/>Type&lt;/th&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;th<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;<sp/>background-color:<sp/>#f0f0f0;&quot;&gt;Startup<sp/>Method&lt;/th&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Open-loop&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Voltage&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A.&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A.&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Rotor<sp/>Pre-Alignment&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Six<sp/>Pulse<sp/>Injection&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;High<sp/>Frequency<sp/>Injection&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Dyno<sp/>Mode&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Encoder&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Rotor<sp/>Pre-Alignment&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Hall<sp/>Sensor&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;TBC<sp/>in<sp/>BC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Hall<sp/>Sensor&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;TBC<sp/>in<sp/>TC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Current&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Hall<sp/>Sensor&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Torque&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Rotor<sp/>Pre-Alignment&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Torque&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Six<sp/>Pulse<sp/>Injection&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Torque&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;High<sp/>Frequency<sp/>Injection&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Torque&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Dyno<sp/>Mode&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Rotor<sp/>Pre-Alignment&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Six<sp/>Pulse<sp/>Injection&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;High<sp/>Frequency<sp/>Injection&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO<sp/>or<sp/>SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Sensorless&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Open-Loop<sp/>Volt/Hz&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC<sp/>in<sp/>RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Hall<sp/>Sensor&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;TBC<sp/>in<sp/>BC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Hall<sp/>Sensor&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;TBC<sp/>in<sp/>TC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Speed&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Hall<sp/>Sensor&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;N.A&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;/table&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;br&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;table<sp/>style=&quot;border-collapse:<sp/>collapse;&quot;&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;th<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;<sp/>background-color:<sp/>#f0f0f0;&quot;&gt;Achronym&lt;/th&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;th<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;<sp/>background-color:<sp/>#f0f0f0;&quot;&gt;Expansion&lt;/th&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;FOC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Field<sp/>Oriented<sp/>Control&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;RFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Rotor<sp/>Frame<sp/>Orientation&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;SFO&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Stator<sp/>Frame<sp/>Orientation&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;TBC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Trapezoidal<sp/>or<sp/>Block<sp/>Commutation&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;BC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Block<sp/>Commutation&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;tr&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;TC&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>&lt;td<sp/>style=&quot;border:<sp/>1px<sp/>solid<sp/>black;<sp/>padding:<sp/>8px;&quot;&gt;Trapezoidal<sp/>Commutation&lt;/td&gt;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>&lt;/tr&gt;</highlight></codeline>
+<codeline><highlight class="normal">&lt;/table&gt;</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">-<sp/>Motor<sp/>control<sp/>library<sp/>supports<sp/>25<sp/>different<sp/>permutations<sp/>of<sp/>the<sp/>control<sp/>type,<sp/>control<sp/>entity,<sp/>feedback<sp/>type,<sp/>and<sp/>statup<sp/>method<sp/>as<sp/>shown<sp/>in<sp/>the<sp/>table<sp/>above.</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>In<sp/>addition,<sp/>both<sp/>three-shunt<sp/>and<sp/>single-shunt<sp/>configurations<sp/>are<sp/>supported,<sp/>which<sp/>results<sp/>in<sp/>more<sp/>flexibility<sp/>in<sp/>supporting<sp/>various<sp/>applications.</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Note<sp/>that<sp/>the<sp/>user<sp/>will<sp/>have<sp/>flexibility<sp/>to<sp/>include<sp/>or<sp/>bypass<sp/>the<sp/>current<sp/>loop<sp/>when<sp/>using<sp/>*TBC<sp/>in<sp/>BC*<sp/>mode.</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Bypassing<sp/>the<sp/>current<sp/>loop<sp/>can<sp/>address<sp/>low-cost<sp/>BLDC<sp/>applications<sp/>with<sp/>no<sp/>shunts<sp/>or<sp/>ADCs.</highlight></codeline>
+<codeline></codeline>
+<codeline></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">###<sp/>More<sp/>information</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">Detailed<sp/>information<sp/>on<sp/>supported<sp/>toolchains<sp/>(make<sp/>variable<sp/>&apos;TOOLCHAIN&apos;),<sp/>kits<sp/>(make<sp/>variable<sp/>&apos;TARGET&apos;),<sp/>Hardware<sp/>setup<sp/>,<sp/>Software<sp/>setup,<sp/>creating<sp/>project<sp/>in<sp/>ModusToolbox<sp/>with<sp/>all<sp/>the<sp/>other<sp/>assets<sp/>for<sp/>a<sp/>particular<sp/>kit<sp/>and<sp/>code<sp/>example<sp/>etc.<sp/>are<sp/>available<sp/>in<sp/>the<sp/>README<sp/>file<sp/>of<sp/>MOTOR_DEMO<sp/>Code<sp/>Example.</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">**Resources<sp/><sp/>|<sp/>Links**</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Supported<sp/>motor<sp/>control<sp/>kits<sp/>|<sp/>KIT_XMC7200_DC_V1<sp/><sp/>and<sp/>KIT_PSC3M5_CC2<sp/></highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Libraries<sp/>on<sp/>GitHub<sp/><sp/>|<sp/>[mtb-pdl-cat1](https://github.com/Infineon/mtb-pdl-cat1).<sp/>Peripheral<sp/>Driver<sp/>Library<sp/>(PDL)<sp/>[mtb-hal-cat1](https://github.com/Infineon/mtb-hal-cat1).<sp/>Hardware<sp/>Abstraction<sp/>Layer<sp/>(HAL)<sp/>library<sp/>[retarget-io](https://github.com/Infineon/retarget-io).<sp/>Utility<sp/>library<sp/>to<sp/>retarget<sp/>STDIO<sp/>messages<sp/>to<sp/>a<sp/>UART<sp/>port</highlight></codeline>
+<codeline><highlight class="normal">-<sp/>Tools<sp/><sp/>|<sp/>[ModusToolbox&amp;trade;](https://www.infineon.com/modustoolbox).<sp/>ModusToolbox&amp;trade;<sp/>software<sp/>is<sp/>a<sp/>collection<sp/>of<sp/>easy-to-use<sp/>libraries<sp/>and<sp/>tools<sp/>enabling<sp/>rapid<sp/>development<sp/>with<sp/>Infineon<sp/>MCUs<sp/>for<sp/>applications<sp/>ranging<sp/>from<sp/>wireless<sp/>and<sp/>cloud-connected<sp/>systems,<sp/>edge<sp/>AI/ML,<sp/>embedded<sp/>sense<sp/>and<sp/>control,<sp/>to<sp/>wired<sp/>USB<sp/>connectivity<sp/>using<sp/>PSoC&amp;trade;<sp/>Industrial/IoT<sp/>MCUs,<sp/>AIROC&amp;trade;<sp/>Wi-Fi<sp/>and<sp/>Bluetooth&amp;reg;<sp/>connectivity<sp/>devices,<sp/>XMC&amp;trade;<sp/>Industrial<sp/>MCUs,<sp/>and<sp/>EZ-USB&amp;trade;/EZ-PD&amp;trade;<sp/>wired<sp/>connectivity<sp/>controllers.<sp/>ModusToolbox&amp;trade;<sp/>incorporates<sp/>a<sp/>comprehensive<sp/>set<sp/>of<sp/>BSPs,<sp/>HAL,<sp/>libraries,<sp/>configuration<sp/>tools,<sp/>and<sp/>provides<sp/>support<sp/>for<sp/>industry-standard<sp/>IDEs<sp/>to<sp/>fast-track<sp/>your<sp/>embedded<sp/>application<sp/>development.</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">&lt;br&gt;</highlight></codeline>
+<codeline></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">All<sp/>referenced<sp/>product<sp/>or<sp/>service<sp/>names<sp/>and<sp/>trademarks<sp/>are<sp/>the<sp/>property<sp/>of<sp/>their<sp/>respective<sp/>owners.</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">The<sp/>Bluetooth&amp;reg;<sp/>word<sp/>mark<sp/>and<sp/>logos<sp/>are<sp/>registered<sp/>trademarks<sp/>owned<sp/>by<sp/>Bluetooth<sp/>SIG,<sp/>Inc.,<sp/>and<sp/>any<sp/>use<sp/>of<sp/>such<sp/>marks<sp/>by<sp/>Infineon<sp/>is<sp/>under<sp/>license.</highlight></codeline>
+<codeline></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">---------------------------------------------------------</highlight></codeline>
+<codeline></codeline>
+<codeline><highlight class="normal">©<sp/>Cypress<sp/>Semiconductor<sp/>Corporation,<sp/>2024.<sp/>This<sp/>document<sp/>is<sp/>the<sp/>property<sp/>of<sp/>Cypress<sp/>Semiconductor<sp/>Corporation,<sp/>an<sp/>Infineon<sp/>Technologies<sp/>company,<sp/>and<sp/>its<sp/>affiliates<sp/>(&quot;Cypress&quot;).<sp/><sp/>This<sp/>document,<sp/>including<sp/>any<sp/>software<sp/>or<sp/>firmware<sp/>included<sp/>or<sp/>referenced<sp/>in<sp/>this<sp/>document<sp/>(&quot;Software&quot;),<sp/>is<sp/>owned<sp/>by<sp/>Cypress<sp/>under<sp/>the<sp/>intellectual<sp/>property<sp/>laws<sp/>and<sp/>treaties<sp/>of<sp/>the<sp/>United<sp/>States<sp/>and<sp/>other<sp/>countries<sp/>worldwide.<sp/><sp/>Cypress<sp/>reserves<sp/>all<sp/>rights<sp/>under<sp/>such<sp/>laws<sp/>and<sp/>treaties<sp/>and<sp/>does<sp/>not,<sp/>except<sp/>as<sp/>specifically<sp/>stated<sp/>in<sp/>this<sp/>paragraph,<sp/>grant<sp/>any<sp/>license<sp/>under<sp/>its<sp/>patents,<sp/>copyrights,<sp/>trademarks,<sp/>or<sp/>other<sp/>intellectual<sp/>property<sp/>rights.<sp/><sp/>If<sp/>the<sp/>Software<sp/>is<sp/>not<sp/>accompanied<sp/>by<sp/>a<sp/>license<sp/>agreement<sp/>and<sp/>you<sp/>do<sp/>not<sp/>otherwise<sp/>have<sp/>a<sp/>written<sp/>agreement<sp/>with<sp/>Cypress<sp/>governing<sp/>the<sp/>use<sp/>of<sp/>the<sp/>Software,<sp/>then<sp/>Cypress<sp/>hereby<sp/>grants<sp/>you<sp/>a<sp/>personal,<sp/>non-exclusive,<sp/>nontransferable<sp/>license<sp/>(without<sp/>the<sp/>right<sp/>to<sp/>sublicense)<sp/>(1)<sp/>under<sp/>its<sp/>copyright<sp/>rights<sp/>in<sp/>the<sp/>Software<sp/>(a)<sp/>for<sp/>Software<sp/>provided<sp/>in<sp/>source<sp/>code<sp/>form,<sp/>to<sp/>modify<sp/>and<sp/>reproduce<sp/>the<sp/>Software<sp/>solely<sp/>for<sp/>use<sp/>with<sp/>Cypress<sp/>hardware<sp/>products,<sp/>only<sp/>internally<sp/>within<sp/>your<sp/>organization,<sp/>and<sp/>(b)<sp/>to<sp/>distribute<sp/>the<sp/>Software<sp/>in<sp/>binary<sp/>code<sp/>form<sp/>externally<sp/>to<sp/>end<sp/>users<sp/>(either<sp/>directly<sp/>or<sp/>indirectly<sp/>through<sp/>resellers<sp/>and<sp/>distributors),<sp/>solely<sp/>for<sp/>use<sp/>on<sp/>Cypress<sp/>hardware<sp/>product<sp/>units,<sp/>and<sp/>(2)<sp/>under<sp/>those<sp/>claims<sp/>of<sp/>Cypress&apos;s<sp/>patents<sp/>that<sp/>are<sp/>infringed<sp/>by<sp/>the<sp/>Software<sp/>(as<sp/>provided<sp/>by<sp/>Cypress,<sp/>unmodified)<sp/>to<sp/>make,<sp/>use,<sp/>distribute,<sp/>and<sp/>import<sp/>the<sp/>Software<sp/>solely<sp/>for<sp/>use<sp/>with<sp/>Cypress<sp/>hardware<sp/>products.<sp/><sp/>Any<sp/>other<sp/>use,<sp/>reproduction,<sp/>modification,<sp/>translation,<sp/>or<sp/>compilation<sp/>of<sp/>the<sp/>Software<sp/>is<sp/>prohibited.</highlight></codeline>
+<codeline><highlight class="normal">&lt;br&gt;</highlight></codeline>
+<codeline><highlight class="normal">TO<sp/>THE<sp/>EXTENT<sp/>PERMITTED<sp/>BY<sp/>APPLICABLE<sp/>LAW,<sp/>CYPRESS<sp/>MAKES<sp/>NO<sp/>WARRANTY<sp/>OF<sp/>ANY<sp/>KIND,<sp/>EXPRESS<sp/>OR<sp/>IMPLIED,<sp/>WITH<sp/>REGARD<sp/>TO<sp/>THIS<sp/>DOCUMENT<sp/>OR<sp/>ANY<sp/>SOFTWARE<sp/>OR<sp/>ACCOMPANYING<sp/>HARDWARE,<sp/>INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>THE<sp/>IMPLIED<sp/>WARRANTIES<sp/>OF<sp/>MERCHANTABILITY<sp/>AND<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE.<sp/><sp/>No<sp/>computing<sp/>device<sp/>can<sp/>be<sp/>absolutely<sp/>secure.<sp/><sp/>Therefore,<sp/>despite<sp/>security<sp/>measures<sp/>implemented<sp/>in<sp/>Cypress<sp/>hardware<sp/>or<sp/>software<sp/>products,<sp/>Cypress<sp/>shall<sp/>have<sp/>no<sp/>liability<sp/>arising<sp/>out<sp/>of<sp/>any<sp/>security<sp/>breach,<sp/>such<sp/>as<sp/>unauthorized<sp/>access<sp/>to<sp/>or<sp/>use<sp/>of<sp/>a<sp/>Cypress<sp/>product.<sp/>CYPRESS<sp/>DOES<sp/>NOT<sp/>REPRESENT,<sp/>WARRANT,<sp/>OR<sp/>GUARANTEE<sp/>THAT<sp/>CYPRESS<sp/>PRODUCTS,<sp/>OR<sp/>SYSTEMS<sp/>CREATED<sp/>USING<sp/>CYPRESS<sp/>PRODUCTS,<sp/>WILL<sp/>BE<sp/>FREE<sp/>FROM<sp/>CORRUPTION,<sp/>ATTACK,<sp/>VIRUSES,<sp/>INTERFERENCE,<sp/>HACKING,<sp/>DATA<sp/>LOSS<sp/>OR<sp/>THEFT,<sp/>OR<sp/>OTHER<sp/>SECURITY<sp/>INTRUSION<sp/>(collectively,<sp/>&quot;Security<sp/>Breach&quot;).<sp/><sp/>Cypress<sp/>disclaims<sp/>any<sp/>liability<sp/>relating<sp/>to<sp/>any<sp/>Security<sp/>Breach,<sp/>and<sp/>you<sp/>shall<sp/>and<sp/>hereby<sp/>do<sp/>release<sp/>Cypress<sp/>from<sp/>any<sp/>claim,<sp/>damage,<sp/>or<sp/>other<sp/>liability<sp/>arising<sp/>from<sp/>any<sp/>Security<sp/>Breach.<sp/><sp/>In<sp/>addition,<sp/>the<sp/>products<sp/>described<sp/>in<sp/>these<sp/>materials<sp/>may<sp/>contain<sp/>design<sp/>defects<sp/>or<sp/>errors<sp/>known<sp/>as<sp/>errata<sp/>which<sp/>may<sp/>cause<sp/>the<sp/>product<sp/>to<sp/>deviate<sp/>from<sp/>published<sp/>specifications.<sp/>To<sp/>the<sp/>extent<sp/>permitted<sp/>by<sp/>applicable<sp/>law,<sp/>Cypress<sp/>reserves<sp/>the<sp/>right<sp/>to<sp/>make<sp/>changes<sp/>to<sp/>this<sp/>document<sp/>without<sp/>further<sp/>notice.<sp/>Cypress<sp/>does<sp/>not<sp/>assume<sp/>any<sp/>liability<sp/>arising<sp/>out<sp/>of<sp/>the<sp/>application<sp/>or<sp/>use<sp/>of<sp/>any<sp/>product<sp/>or<sp/>circuit<sp/>described<sp/>in<sp/>this<sp/>document.<sp/>Any<sp/>information<sp/>provided<sp/>in<sp/>this<sp/>document,<sp/>including<sp/>any<sp/>sample<sp/>design<sp/>information<sp/>or<sp/>programming<sp/>code,<sp/>is<sp/>provided<sp/>only<sp/>for<sp/>reference<sp/>purposes.<sp/><sp/>It<sp/>is<sp/>the<sp/>responsibility<sp/>of<sp/>the<sp/>user<sp/>of<sp/>this<sp/>document<sp/>to<sp/>properly<sp/>design,<sp/>program,<sp/>and<sp/>test<sp/>the<sp/>functionality<sp/>and<sp/>safety<sp/>of<sp/>any<sp/>application<sp/>made<sp/>of<sp/>this<sp/>information<sp/>and<sp/>any<sp/>resulting<sp/>product.<sp/><sp/>&quot;High-Risk<sp/>Device&quot;<sp/>means<sp/>any<sp/>device<sp/>or<sp/>system<sp/>whose<sp/>failure<sp/>could<sp/>cause<sp/>personal<sp/>injury,<sp/>death,<sp/>or<sp/>property<sp/>damage.<sp/><sp/>Examples<sp/>of<sp/>High-Risk<sp/>Devices<sp/>are<sp/>weapons,<sp/>nuclear<sp/>installations,<sp/>surgical<sp/>implants,<sp/>and<sp/>other<sp/>medical<sp/>devices.<sp/><sp/>&quot;Critical<sp/>Component&quot;<sp/>means<sp/>any<sp/>component<sp/>of<sp/>a<sp/>High-Risk<sp/>Device<sp/>whose<sp/>failure<sp/>to<sp/>perform<sp/>can<sp/>be<sp/>reasonably<sp/>expected<sp/>to<sp/>cause,<sp/>directly<sp/>or<sp/>indirectly,<sp/>the<sp/>failure<sp/>of<sp/>the<sp/>High-Risk<sp/>Device,<sp/>or<sp/>to<sp/>affect<sp/>its<sp/>safety<sp/>or<sp/>effectiveness.<sp/><sp/>Cypress<sp/>is<sp/>not<sp/>liable,<sp/>in<sp/>whole<sp/>or<sp/>in<sp/>part,<sp/>and<sp/>you<sp/>shall<sp/>and<sp/>hereby<sp/>do<sp/>release<sp/>Cypress<sp/>from<sp/>any<sp/>claim,<sp/>damage,<sp/>or<sp/>other<sp/>liability<sp/>arising<sp/>from<sp/>any<sp/>use<sp/>of<sp/>a<sp/>Cypress<sp/>product<sp/>as<sp/>a<sp/>Critical<sp/>Component<sp/>in<sp/>a<sp/>High-Risk<sp/>Device.<sp/>You<sp/>shall<sp/>indemnify<sp/>and<sp/>hold<sp/>Cypress,<sp/>including<sp/>its<sp/>affiliates,<sp/>and<sp/>its<sp/>directors,<sp/>officers,<sp/>employees,<sp/>agents,<sp/>distributors,<sp/>and<sp/>assigns<sp/>harmless<sp/>from<sp/>and<sp/>against<sp/>all<sp/>claims,<sp/>costs,<sp/>damages,<sp/>and<sp/>expenses,<sp/>arising<sp/>out<sp/>of<sp/>any<sp/>claim,<sp/>including<sp/>claims<sp/>for<sp/>product<sp/>liability,<sp/>personal<sp/>injury<sp/>or<sp/>death,<sp/>or<sp/>property<sp/>damage<sp/>arising<sp/>from<sp/>any<sp/>use<sp/>of<sp/>a<sp/>Cypress<sp/>product<sp/>as<sp/>a<sp/>Critical<sp/>Component<sp/>in<sp/>a<sp/>High-Risk<sp/>Device.<sp/>Cypress<sp/>products<sp/>are<sp/>not<sp/>intended<sp/>or<sp/>authorized<sp/>for<sp/>use<sp/>as<sp/>a<sp/>Critical<sp/>Component<sp/>in<sp/>any<sp/>High-Risk<sp/>Device<sp/>except<sp/>to<sp/>the<sp/>limited<sp/>extent<sp/>that<sp/>(i)<sp/>Cypress&apos;s<sp/>published<sp/>data<sp/>sheet<sp/>for<sp/>the<sp/>product<sp/>explicitly<sp/>states<sp/>Cypress<sp/>has<sp/>qualified<sp/>the<sp/>product<sp/>for<sp/>use<sp/>in<sp/>a<sp/>specific<sp/>High-Risk<sp/>Device,<sp/>or<sp/>(ii)<sp/>Cypress<sp/>has<sp/>given<sp/>you<sp/>advance<sp/>written<sp/>authorization<sp/>to<sp/>use<sp/>the<sp/>product<sp/>as<sp/>a<sp/>Critical<sp/>Component<sp/>in<sp/>the<sp/>specific<sp/>High-Risk<sp/>Device<sp/>and<sp/>you<sp/>have<sp/>signed<sp/>a<sp/>separate<sp/>indemnification<sp/>agreement.</highlight></codeline>
+<codeline><highlight class="normal">&lt;br&gt;</highlight></codeline>
+<codeline><highlight class="normal">Cypress,<sp/>the<sp/>Cypress<sp/>logo,<sp/>and<sp/>combinations<sp/>thereof,<sp/>ModusToolbox,<sp/>PSoC,<sp/>CAPSENSE,<sp/>EZ-USB,<sp/>F-RAM,<sp/>and<sp/>TRAVEO<sp/>are<sp/>trademarks<sp/>or<sp/>registered<sp/>trademarks<sp/>of<sp/>Cypress<sp/>or<sp/>a<sp/>subsidiary<sp/>of<sp/>Cypress<sp/>in<sp/>the<sp/>United<sp/>States<sp/>or<sp/>in<sp/>other<sp/>countries.<sp/>For<sp/>a<sp/>more<sp/>complete<sp/>list<sp/>of<sp/>Cypress<sp/>trademarks,<sp/>visit<sp/>www.infineon.com.<sp/>Other<sp/>names<sp/>and<sp/>brands<sp/>may<sp/>be<sp/>claimed<sp/>as<sp/>property<sp/>of<sp/>their<sp/>respective<sp/>owners.</highlight></codeline>
+<codeline></codeline>
+    </programlisting>
+    <location file="README.doxygen.md"/>
+  </compounddef>
+</doxygen>

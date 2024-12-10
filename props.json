@@ -1,0 +1,7 @@
+{
+    "configurator_support": true,
+    "core": {
+        "id": "6528c065-fdca-4e45-830f-c145a6b82ff3",
+        "name": "motor-ctrl-lib"
+    }
+}

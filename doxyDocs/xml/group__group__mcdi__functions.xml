@@ -1,0 +1,200 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.2" xml:lang="en-US">
+  <compounddef id="group__group__mcdi__functions" kind="group">
+    <compoundname>group_mcdi_functions</compoundname>
+    <title>Functions</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__group__mcdi__functions_1ga51a3bd9bed4fc1317476522d054fb583" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>cy_rslt_t</type>
+        <definition>cy_rslt_t mtb_mcdi_init</definition>
+        <argsstring>(mtb_stc_mcdi_cfg_t const *cfg)</argsstring>
+        <name>mtb_mcdi_init</name>
+        <param>
+          <type><ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref> const *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+<para>Initializes all MCDI Timers and PWMs. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The HPPASS is a common resource, it is initialized outside of the solution level (it can be common for multiple solutions).</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cfg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pointer to the configuration structure <ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref>.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The combined status if initialization of all the Timers and PWMs.</para>
+</simplesect>
+<simplesect kind="par"><title>Function Usage</title><para><programlisting filename="fut_dat_snippet/main.c"><codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1ga51a3bd9bed4fc1317476522d054fb583" kindref="member">mtb_mcdi_init</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gacbee2416e6dfff366a74a3cea179c2cc" kindref="member">mtb_mcdi_enable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1gace17318abfe875652b61ba0f43824339" kindref="member">mtb_mcdi_start</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>after<sp/>some<sp/>time,<sp/>when<sp/>motor<sp/>control<sp/>HW<sp/>has<sp/>to<sp/>be<sp/>stopped<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gad3dd6a067f1d7921b2ff843cdb62111e" kindref="member">mtb_mcdi_disable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+</programlisting> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mcdi/mtb_mcdi.h" line="297" column="11" bodyfile="mcdi/mtb_mcdi.c" bodystart="46" bodyend="70" declfile="mcdi/mtb_mcdi.h" declline="297" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group__group__mcdi__functions_1gacbee2416e6dfff366a74a3cea179c2cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>cy_rslt_t</type>
+        <definition>cy_rslt_t mtb_mcdi_enable</definition>
+        <argsstring>(mtb_stc_mcdi_cfg_t const *cfg)</argsstring>
+        <name>mtb_mcdi_enable</name>
+        <param>
+          <type><ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref> const *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+<para>Enables all MCDI Timers and PWMs. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>After this action, they are sensitive to input triggers.</para>
+<para><simplesect kind="return"><para>The execution status.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cfg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pointer to the configuration structure <ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref>.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="par"><title>Function Usage</title><para><programlisting filename="fut_dat_snippet/main.c"><codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1ga51a3bd9bed4fc1317476522d054fb583" kindref="member">mtb_mcdi_init</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gacbee2416e6dfff366a74a3cea179c2cc" kindref="member">mtb_mcdi_enable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1gace17318abfe875652b61ba0f43824339" kindref="member">mtb_mcdi_start</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>after<sp/>some<sp/>time,<sp/>when<sp/>motor<sp/>control<sp/>HW<sp/>has<sp/>to<sp/>be<sp/>stopped<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gad3dd6a067f1d7921b2ff843cdb62111e" kindref="member">mtb_mcdi_disable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+</programlisting> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mcdi/mtb_mcdi.h" line="314" column="11" bodyfile="mcdi/mtb_mcdi.c" bodystart="73" bodyend="105" declfile="mcdi/mtb_mcdi.h" declline="314" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group__group__mcdi__functions_1gad3dd6a067f1d7921b2ff843cdb62111e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>cy_rslt_t</type>
+        <definition>cy_rslt_t mtb_mcdi_disable</definition>
+        <argsstring>(mtb_stc_mcdi_cfg_t const *cfg)</argsstring>
+        <name>mtb_mcdi_disable</name>
+        <param>
+          <type><ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref> const *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+<para>Stops and Disables all MCDI Timers and PWMs. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The execution status.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cfg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pointer to the configuration structure <ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref>.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="par"><title>Function Usage</title><para><programlisting filename="fut_dat_snippet/main.c"><codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1ga51a3bd9bed4fc1317476522d054fb583" kindref="member">mtb_mcdi_init</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gacbee2416e6dfff366a74a3cea179c2cc" kindref="member">mtb_mcdi_enable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1gace17318abfe875652b61ba0f43824339" kindref="member">mtb_mcdi_start</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>after<sp/>some<sp/>time,<sp/>when<sp/>motor<sp/>control<sp/>HW<sp/>has<sp/>to<sp/>be<sp/>stopped<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gad3dd6a067f1d7921b2ff843cdb62111e" kindref="member">mtb_mcdi_disable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+</programlisting> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mcdi/mtb_mcdi.h" line="330" column="11" bodyfile="mcdi/mtb_mcdi.c" bodystart="108" bodyend="138" declfile="mcdi/mtb_mcdi.h" declline="330" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group__group__mcdi__functions_1gace17318abfe875652b61ba0f43824339" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>cy_rslt_t</type>
+        <definition>cy_rslt_t mtb_mcdi_start</definition>
+        <argsstring>(mtb_stc_mcdi_cfg_t const *cfg)</argsstring>
+        <name>mtb_mcdi_start</name>
+        <param>
+          <type><ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref> const *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+<para>Starts all the PWMs and Sync and Fast Timers synchronously. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Starts the Slow Timer asynchronously after that. The HPPASS is a common resource, it is configured and started before this function execution.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cfg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pointer to the configuration structure <ref refid="structmtb__stc__mcdi__cfg__t" kindref="compound">mtb_stc_mcdi_cfg_t</ref>.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The Cy_TrigMux_SwTrigger status.</para>
+</simplesect>
+<simplesect kind="par"><title>Function Usage</title><para><programlisting filename="fut_dat_snippet/main.c"><codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1ga51a3bd9bed4fc1317476522d054fb583" kindref="member">mtb_mcdi_init</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gacbee2416e6dfff366a74a3cea179c2cc" kindref="member">mtb_mcdi_enable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(CY_RSLT_SUCCESS<sp/>!=<sp/><ref refid="group__group__mcdi__functions_1gace17318abfe875652b61ba0f43824339" kindref="member">mtb_mcdi_start</ref>(&amp;myMotor_cfg))</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CY_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">/*<sp/>Process<sp/>possible<sp/>error<sp/>here<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>after<sp/>some<sp/>time,<sp/>when<sp/>motor<sp/>control<sp/>HW<sp/>has<sp/>to<sp/>be<sp/>stopped<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__group__mcdi__functions_1gad3dd6a067f1d7921b2ff843cdb62111e" kindref="member">mtb_mcdi_disable</ref>(&amp;myMotor_cfg);</highlight></codeline>
+</programlisting> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mcdi/mtb_mcdi.h" line="349" column="11" bodyfile="mcdi/mtb_mcdi.c" bodystart="141" bodyend="151" declfile="mcdi/mtb_mcdi.h" declline="349" declcolumn="11"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

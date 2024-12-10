@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.2" xml:lang="en-US">
+  <compounddef id="dir_369fda459823f458cbc5cd95940c1945" kind="dir">
+    <compoundname>mcdi</compoundname>
+    <innerfile refid="mtb__mcdi_8c">mtb_mcdi.c</innerfile>
+    <innerfile refid="mtb__mcdi_8h">mtb_mcdi.h</innerfile>
+    <innerfile refid="mtb__mcdi__gen__func__doc_8h">mtb_mcdi_gen_func_doc.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mcdi/"/>
+  </compounddef>
+</doxygen>

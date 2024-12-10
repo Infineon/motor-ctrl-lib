@@ -3,14 +3,14 @@
 
 ### Overview
 
-Motor control library provides implmenetation of various algorithms to support below features  :
+Motor control library provides implmenetation of various algorithms to support the below features  :
 
 - **Advanced Features**
     - Supporting <span style="color:blue">Rotor Field Oriented (RFO)</span> control
     - Supporting <span style="color:blue">Stator Field Oriented (SFO)</span> control
     - Supporting <span style="color:blue">Trapezoidal or Block Commutation (TBC)</span> control
 - **Floating Point Base**
-- **GUI Integration** : Easy monitoring and configuration of the various motor control parameters can be done via GUI
+- **GUI Integration** : Easy monitoring and configuration of the various motor control parameters can be done via the GUI
     - <span style="color:blue">Configurator</span> view
     - <span style="color:blue">Test Bench</span> view
     - <span style="color:blue">Tools</span> such as <span style="color:blue">Oscilloscope</span>, <span style="color:blue">Motor Profiler</span>, etc.
@@ -18,7 +18,7 @@ Motor control library provides implmenetation of various algorithms to support b
 
 ### Features
 
-There are three major <span style="color:blue">control types</span> that are supported, namely
+There are three major <span style="color:blue">control types</span> supported:
 - Rotor Field Oriented (RFO) control
 - Stator Field Oriented (SFO) control
 - Trapezoidal or Block Commutation (TBC) control
@@ -221,9 +221,9 @@ These control types are selectable as <span style="color:blue">build configurati
   </tr>
 </table>
 
-- Motor control library supports 25 different permutations of control type, control entity, feedback type, and statup method as shown in the table above.
-- In addition, both three-shunt and single-shunt configurations are supported, which result in more flexibility in supporting various applications.
-- It should be noted that the user will have flexibility to include or bypass the current loop when using *TBC in BC* mode.
+- Motor control library supports 25 different permutations of the control type, control entity, feedback type, and statup method as shown in the table above.
+- In addition, both three-shunt and single-shunt configurations are supported, which results in more flexibility in supporting various applications.
+- Note that the user will have flexibility to include or bypass the current loop when using *TBC in BC* mode.
 - Bypassing the current loop can address low-cost BLDC applications with no shunts or ADCs.
 
 
@@ -237,27 +237,6 @@ Detailed information on supported toolchains (make variable 'TOOLCHAIN'), kits (
 - Libraries on GitHub  | [mtb-pdl-cat1](https://github.com/Infineon/mtb-pdl-cat1). Peripheral Driver Library (PDL) [mtb-hal-cat1](https://github.com/Infineon/mtb-hal-cat1). Hardware Abstraction Layer (HAL) library [retarget-io](https://github.com/Infineon/retarget-io). Utility library to retarget STDIO messages to a UART port
 - Tools  | [ModusToolbox&trade;](https://www.infineon.com/modustoolbox). ModusToolbox&trade; software is a collection of easy-to-use libraries and tools enabling rapid development with Infineon MCUs for applications ranging from wireless and cloud-connected systems, edge AI/ML, embedded sense and control, to wired USB connectivity using PSoC&trade; Industrial/IoT MCUs, AIROC&trade; Wi-Fi and Bluetooth&reg; connectivity devices, XMC&trade; Industrial MCUs, and EZ-USB&trade;/EZ-PD&trade; wired connectivity controllers. ModusToolbox&trade; incorporates a comprehensive set of BSPs, HAL, libraries, configuration tools, and provides support for industry-standard IDEs to fast-track your embedded application development.
 
-<br>
-
-
-## Document history
-
-Document title: *Infineon Motor Control Library*
-
-<!-- | Version | Description of change | -->
-<!-- | ------- | --------------------- | -->
-<!-- | 1.0.0   | Motor Control Library | -->
-
-<table style="border-collapse: collapse;">
-  <tr>
-    <th style="border: 1px solid black; padding: 8px; background-color: #f0f0f0;">Version</th>
-    <th style="border: 1px solid black; padding: 8px; background-color: #f0f0f0;">Description of change</th>
-  </tr>
-  <tr>
-    <td style="border: 1px solid black; padding: 8px;">1.0.0</td>
-    <td style="border: 1px solid black; padding: 8px;">Motor Control Library</td>
-  </tr>
-</table>
 <br>
 
 

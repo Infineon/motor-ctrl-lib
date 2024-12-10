@@ -34,7 +34,7 @@
 #pragma once
 
 // Latest firmware version, 0xAABC==vAA.B.C, Example: 0x0150==v1.5.0.
-#define FIRMWARE_VER			(0x0180UL)
+#define FIRMWARE_VER			(0x0190UL)
 #define PARAMS_CODE				(~0xBADC0DEUL)	// Do not change this code
 #define PARAMS_VER				(0x0003UL)		// Parameters version. Change when params struct changes.
 #define PARAMS_ALWAYS_OVERWRITE     (false)     // For testing only. Using this will ensure that parameters are always overwritten.
