@@ -1,13 +1,13 @@
 /*******************************************************************************
 * \file mtb_mcdi.c
-* \version 1.0
+* \version 2.0
 *
 * \brief
 * Provides API implementation for the MCDI library.
 *
 ********************************************************************************
 * \copyright
-* (c) (2024), Cypress Semiconductor Corporation (an Infineon company) or
+* (c) (2025), Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation. All rights reserved.
 ********************************************************************************
 * This software, including source code, documentation and related materials
@@ -45,17 +45,17 @@
 
 cy_rslt_t mtb_mcdi_init(mtb_stc_mcdi_cfg_t const * cfg)
 {
-    cy_rslt_t status = (cy_rslt_t)(cy_en_mcdi_status_t)CY_MCDI_SUCCESS;
+    cy_rslt_t status = MTB_MCDI_SUCCESS;
 
     if ((cfg->topo == MTB_MCDI_3SHUNT) || (cfg->topo == MTB_MCDI_1SHUNT))
     {
-        for (uint32_t i = 0UL; i < CY_MCDI_PWM_NUM; i++)
+        for (uint32_t i = 0UL; i < MTB_MCDI_PWM_NUM; i++)
         {
             status |=
                 (cy_rslt_t)Cy_TCPWM_PWM_Init(cfg->tcpwmBase, cfg->pwm[i].idx, cfg->pwm[i].cfg);
         }
 
-        for (uint32_t i = 0UL; i < CY_MCDI_TMR_NUM; i++)
+        for (uint32_t i = 0UL; i < MTB_MCDI_TMR_NUM; i++)
         {
             status |=
                 (cy_rslt_t)Cy_TCPWM_Counter_Init(cfg->tcpwmBase, cfg->tmr[i].idx, cfg->tmr[i].cfg);
@@ -63,7 +63,7 @@ cy_rslt_t mtb_mcdi_init(mtb_stc_mcdi_cfg_t const * cfg)
     }
     else
     {
-        status = (cy_rslt_t)(cy_en_mcdi_status_t)CY_MCDI_BAD_PARAM;
+        status = MTB_MCDI_BAD_PARAM;
     }
 
     return status;
@@ -72,12 +72,12 @@ cy_rslt_t mtb_mcdi_init(mtb_stc_mcdi_cfg_t const * cfg)
 
 cy_rslt_t mtb_mcdi_enable(mtb_stc_mcdi_cfg_t const * cfg)
 {
-    for (uint32_t i = 0UL; i < CY_MCDI_PWM_NUM; i++)
+    for (uint32_t i = 0UL; i < MTB_MCDI_PWM_NUM; i++)
     {
         Cy_TCPWM_Enable_Single(cfg->tcpwmBase, cfg->pwm[i].idx);
     }
 
-    for (uint32_t i = 0UL; i < CY_MCDI_TMR_NUM; i++)
+    for (uint32_t i = 0UL; i < MTB_MCDI_TMR_NUM; i++)
     {
         Cy_TCPWM_Enable_Single(cfg->tcpwmBase, cfg->tmr[i].idx);
     }
@@ -97,11 +97,11 @@ cy_rslt_t mtb_mcdi_enable(mtb_stc_mcdi_cfg_t const * cfg)
     else /* MTB_MCDI_1SHUNT */
     {
         Cy_TCPWM_SetInterruptMask(cfg->tcpwmBase,
-                                  cfg->tmr[MTB_MCDI_TMR_FAST].idx,
+                                  cfg->pwm[MTB_MCDI_TMR_FAST].idx,
                                   cfg->fastIntrMsk);
     }
 
-    return CY_RSLT_SUCCESS; /* For future capability */
+    return MTB_MCDI_SUCCESS; /* For future capability */
 }
 
 
@@ -114,7 +114,7 @@ cy_rslt_t mtb_mcdi_disable(mtb_stc_mcdi_cfg_t const * cfg)
     }
     else
     {
-        Cy_TCPWM_SetInterruptMask(cfg->tcpwmBase, cfg->tmr[MTB_MCDI_TMR_FAST].idx, 0UL);
+        Cy_TCPWM_SetInterruptMask(cfg->tcpwmBase, cfg->pwm[MTB_MCDI_TMR_FAST].idx, 0UL);
     }
 
     Cy_TCPWM_SetInterruptMask(cfg->tcpwmBase, cfg->tmr[MTB_MCDI_TMR_SLOW].idx, 0UL);
@@ -124,17 +124,17 @@ cy_rslt_t mtb_mcdi_disable(mtb_stc_mcdi_cfg_t const * cfg)
         Cy_GPIO_SetInterruptMask(cfg->fault->base, cfg->fault->pinNum, 0UL);
     }
 
-    for (uint32_t i = 0UL; i < CY_MCDI_PWM_NUM; i++)
+    for (uint32_t i = 0UL; i < MTB_MCDI_PWM_NUM; i++)
     {
         Cy_TCPWM_Disable_Single(cfg->tcpwmBase, cfg->pwm[i].idx);
     }
 
-    for (uint32_t i = 0UL; i < CY_MCDI_TMR_NUM; i++)
+    for (uint32_t i = 0UL; i < MTB_MCDI_TMR_NUM; i++)
     {
         Cy_TCPWM_Disable_Single(cfg->tcpwmBase, cfg->tmr[i].idx);
     }
 
-    return CY_RSLT_SUCCESS; /* For future capability */
+    return MTB_MCDI_SUCCESS; /* For future capability */
 }
 
 

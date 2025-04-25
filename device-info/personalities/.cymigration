@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Migration>
+  <Source id="1shunt-1.0">
+    <Destination id="1shunt-2.0" valid="true" message="Migration is successful" defaultMapping="true" >
+    </Destination>
+  </Source>
+  <Source id="3shunt-1.0">
+    <Destination id="3shunt-2.0" valid="true" message="Migration is successful" defaultMapping="true" >
+  </Destination>
+  </Source>
+
+</Migration>

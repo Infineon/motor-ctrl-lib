@@ -1,13 +1,13 @@
 /***************************************************************************//**
 * \file mtb_mcdi.h
-* \version 1.0
+* \version 2.0
 *
 * \brief
 * Provides private declarations for the MCDI library.
 *
 ********************************************************************************
 * \copyright
-* (c) (2024), Cypress Semiconductor Corporation (an Infineon company) or
+* (c) (2025), Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation. All rights reserved.
 ********************************************************************************
 * This software, including source code, documentation and related materials
@@ -43,18 +43,17 @@
  *<!-- The MCDI documentation structure -->
  * \defgroup group_mcdi_general Motor Control Driver Interface (MCDI)
  * \{
- *  \defgroup group_mcdi_macros Macros
- *  \defgroup group_mcdi_enums Enumerated Types
- *  \{
+ *<!--  \defgroup group_mcdi_macros Macros -->
+ *<!--  \{ -->
  *    \defgroup group_mcdi_status Status
+ *<!--  \} -->
+ *<!--  \defgroup group_mcdi_enums Enumerated Types -->
+ *<!--  \{ -->
  *    \defgroup group_mcdi_topologies Topologies
- *  \}
+ *<!--  \} -->
  *  \defgroup group_mcdi_data_structures Data Structures
- *  \defgroup group_mcdi_functions Functions
- *  \defgroup group_mcdi_gen_func Generated Functions
- *  \cond SECTION_MDI_INTERNAL
- *  \defgroup group_mtb_mcdi_internal Internal Functions
- *  \endcond
+ *<!--   \defgroup group_mcdi_functions Hidden Functions -->
+ *  \defgroup group_mcdi_gen_func Functions
  * \}
  *<!-- End of the MCDI documentation structure -->
  *
@@ -68,6 +67,7 @@
  * - generates device-specific HW configuration code and the control code for the motor
  *   control applications
  * - generates templates for the fast and slow control loop ISRs
+ * - supports Direct Memory Access (DMA) transfers for the ADC and Modulator data
  * - supports single-shunt and three-shunt load current measurement schemes
  * - supports up-to-two motor instances
  *
@@ -109,39 +109,37 @@
  *
  * - Build the project.
  *
- * \note The <b>Init</b> function will be created and its call at startup will be performed in scope of the
- * <b>init_cycfg_all()</b> function only if the "Initialize During Startup" checkbox is checked during configuration
- * process in the Device Configurator tool.
- * \image html init.png
- *
  * \section section_mcdi_usage_details Usage Details
  * \{
  * Assume the motor instance is named in the ModusToolbox&trade; Device Configurator Tool as <b>myMotor</b>.
- * \subsection subsection_mcdi_functions The MCDI Functions
+ * \subsection subsection_mcdi_functions Application Programming Interface
  * \par
  * The simplest way to use <b>myMotor</b> is to use the \ref group_mcdi_gen_func "instance-based generated myMotor API":
- * \snippet fut_gen_snippet/main.c SNIPPET_GEN_FLOW
- * Or, as an alternative you can use the \ref group_mcdi_functions "MCDI data-driven API functions":
- * \snippet fut_dat_snippet/main.c SNIPPET_DAT_FLOW
- * The first is preferable.
+ * \snippet evk_gen_snippet/main.c SNIPPET_GEN_FLOW
+ * <br>
+ * \note It is not recommended to use any MCDI FW items (definitions, enums, structures or functions)
+ * from static sources or generated files which are not described in this document.
  *
- * \subsection subsection_mcdi_control The MCDI Cascade Control
+ *<!-- Or, as an alternative you can use the \ref group_mcdi_functions "MCDI data-driven API functions": -->
+ *<!-- \snippet evk_dat_snippet/main.c SNIPPET_DAT_FLOW -->
+ *<!-- The first is preferable. -->
+ *
+ * \subsection subsection_mcdi_control Cascade Control
  * \par
  * The Solution Personality GUI and its code generation engine provide users a template to create a cascaded control
  * system with the inner and outer control loops.<br> The inner control loop name in MCDI is a Fast Control Loop, and
  * the outer control loop name is a Slow Control Loop.<br>
  * <br>The Fast Control Loop settings provide:
- * - automatic/manual allocation of hardware resources for the Sync timer functionality
- * - automatic/manual allocation of hardware resources for the Fast timer functionality
- * - Fast Control Loop frequency to PWM frequency ratio configuration
- * - Timer compare-value update time-point configuration
- * - ADC group conversion-start time-point configuration
- * - Fast Control Loop interrupt priority configuration
- * - Fast Control Loop callback-function name definition
- * - ADC conversion-result storage-array name definition
+ * - Automatic/manual allocation of hardware resources for Sync timer functionality
+ * - Automatic/manual allocation of hardware resources for Fast timer functionality
+ * - Configuration of the Fast Control Loop frequency to PWM frequency ratio
+ * - Configuration of the time point for updating the timer compare value
+ * - Configuration of the time point for starting ADC group conversions
+ * - Configuration of the Fast Control Loop interrupt priority
+ * - Definition of the Fast Control Loop callback function identifier
  * \par
  * The Slow Control Loop settings provide:
- * - automatic/manual allocation of hardware resources for the Slow timer functionality
+ * - Automatic/manual allocation of hardware resources for the Slow timer functionality
  * - Slow Control Loop frequency to Fast Control Loop frequency ratio configuration
  * - Slow Control Loop interrupt-priority configuration
  * - Slow Control Loop callback-function name definition
@@ -156,22 +154,43 @@
  * \anchor myMotor_fast_callback
  * \snippet 3shunt/main.c SNIPPET_FAST_CALLBACK
  *
- * \subsection subsection_mcdi_inter_connectivity The MCDI resources interconnection and synchronization
+ * \subsection subsection_mcdi_inter_connectivity Resources interconnection and synchronization
  * \par
  * The MCDI Solution Personality occupies the following resources for each Motor Control instance:
  * - Three timers in PWM mode
  * - Three timers in Timer mode
- * - Two HPPASS SAR Sequencer groups, with three ADC channels in each
+ * - Two ADC Sequencer groups, the number of the ADC channels in each is configuration-dependent
  * - Seven or eight GPIOs (depends on configuration)
  * - Two or three HW interrupts (depends on configuration)
  * \par
- * The Motor Control instance interconnection is shown in the picture below.
- * \image html MCDI_resources_interconnection.png
+ * The Motor Control instance resource interconnection depends on the selected measurement scheme.
+ * The difference is highlighted in the picture below.
+ * \image html MCDI_resources_interconnection.png width=60%
  * <br>
- * All the PWM, Sync and Fast timers are synchronized by the Personality engine and started synchronously. The Slow
- * Timer is not synchronized with the others and starts asynchronously.<br>
- * The instance-based \ref myMotor_start and the data-driven \ref mtb_mcdi_start functions are provided by MCDI
- * for this purpose.
+ * All the PWM, Sync, Fast timers start synchronously, and the Slow timer starts asynchronously.<br>
+ * The instance-based \ref myMotor_start function is provided by MCDI for this purpose.<br>
+ * The Fast timer generates one output pulse trigger on the compare event in the Three-shunt topology, and two output
+ * pulse triggers in the Single-shunt topology. The trigger points are configurable;<br>
+ * the only difference is that because of additional swap trigger used in the Single-shunt topology, the trigger
+ * points can be changed by software on the fly.
+ *
+ * \subsection subsection_mcdi_dma Direct Memory Access
+ * The MCDI supports DMA transfers for the ADC and Modulator data, which enables MCU offloading and reduces the Fast ISR
+ * duration. These two features are independent and can be used simultaneously or separately.
+ * \anchor par_mcdi_dma_adc \par ADC DMA
+ * The ADC DMA functionality is enabled by checking the "Use DMA" checkbox in the "ADC" subgroup of the MCDI
+ * configurations.
+ * \image html ADC_DMA_enable.png
+ * The ADC DMA transfers all conversion results of the ADC channels triggered by the Fast timer from Result registers to
+ * their respective memory locations. The ADC DMA channel is triggered automatically by the Group Done event.
+ *
+ * \anchor par_mcdi_dma_mod \par Modulator DMA
+ * The Modulator DMA functionality is enabled by checking the "Use DMA" checkbox in the "PWM" subgroup of the MCDI
+ * configurations.
+ * \image html Modulator_DMA_enable.png
+ * The Modulator DMA transfers the modulator compare values from memory locations to their respective hardware Compare
+ * Buffer registers. The DMA transfer does not start automatically, to start it, the \ref myMotor_mod_update function
+ * shall be called.
  * \}
  * \}
  **/
@@ -188,58 +207,53 @@ extern "C" {
 #endif
 
 
-/******************************************************************************/
-/** \cond SECTION_MDI_INTERNAL */
-/** \addtogroup group_mtb_mcdi_internal *//** \{ */
-/******************************************************************************/
-#define CY_MCDI_MOTORS 2U
-#define CY_MCDI_PWM_NUM 3U
-#define CY_MCDI_TMR_NUM 3U
-/** \} \endcond */
+/***************************************
+*       Macros
+***************************************/
+/** \cond Internal definitions */
+#define MTB_MCDI_PWM_NUM 4U /**< Number of timers in PWM mode */
+#define MTB_MCDI_TMR_NUM 2U /**< Number of timers in Counter mode */
 
-/** \addtogroup group_mcdi_macros
- * \{
- */
 #define MTB_MCDI_PWM_U     (0U) /**< U-phase PWM index */
 #define MTB_MCDI_PWM_V     (1U) /**< V-phase PWM index */
 #define MTB_MCDI_PWM_W     (2U) /**< W-phase PWM index */
+#define MTB_MCDI_TMR_FAST  (3U) /**< Fast Control Loop Timer index */
 
 #define MTB_MCDI_TMR_SYNC     (0U) /**< Synchronization Timer index */
-#define MTB_MCDI_TMR_FAST     (1U) /**< Fast Control Loop Timer index */
-#define MTB_MCDI_TMR_SLOW     (2U) /**< Fast Control Loop Timer index */
-/** \} group_mcdi_macros */
+#define MTB_MCDI_TMR_SLOW     (1U) /**< Slow Control Loop Timer index */
+/** \endcond */
+
+/** \addtogroup group_mcdi_status
+ * Statuses for the MCDI API functions
+ * \{
+ */
+/** The action was successful */
+#define MTB_MCDI_SUCCESS   CY_RSLT_SUCCESS
+/** The Input parameter is out of range or input pointer is NULL */
+#define MTB_MCDI_BAD_PARAM CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CY_RSLT_MODULE_MIDDLEWARE_MCDI, 1UL)
+/** \} group_mcdi_status */
 
 /***************************************
 *       Enumerated Types
 ***************************************/
 /** \addtogroup group_mcdi_topologies
+ * Topologies of current measurement
  * \{
  */
-/** The motor control topologies */
+/** The current measurement topologies */
 typedef enum
 {
-    MTB_MCDI_3SHUNT, /**< 3-shunt topology */
-    MTB_MCDI_1SHUNT  /**< 1-shunt topology */
+    MTB_MCDI_3SHUNT, /**< Three-shunt topology */
+    MTB_MCDI_1SHUNT  /**< Single-shunt topology */
 } mtb_en_mcdi_topo_t;
 /** \} group_mcdi_topologies */
 
-/** \addtogroup group_mcdi_status
- * \{
- */
-/** Return status for functions of the driver for Motor Control Device Interface */
-typedef enum
-{
-    CY_MCDI_SUCCESS           = CY_RSLT_SUCCESS, /**< Action was successful */
-    CY_MCDI_BAD_PARAM         = CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR,
-                                               CY_RSLT_GET_MODULE(CY_RSLT_MODULE_MIDDLEWARE_MCDI),
-                                               0x0000UL) /**< The Input parameter is out of range or input pointer is
-                                                          *   NULL and initialization could not be completed */
-} cy_en_mcdi_status_t;
-/** \} group_mcdi_status */
-
 /** \addtogroup group_mcdi_data_structures
+ * Interface data structures
  * \{
  */
+
+/** \cond Internal */
 /** The single PWM sub-structure */
 typedef struct
 {
@@ -255,34 +269,49 @@ typedef struct
     cy_stc_tcpwm_counter_config_t const * cfg; /**< Timer configuration structure */
 } mtb_stc_mcdi_tmr_t;
 
+/** The single MODULATOR sub-structure */
+typedef struct
+{
+    uint16_t cmp0; /**< Timer Counter compare0 value */
+    uint16_t cmp1; /**< Timer Counter compare1 value */
+} mtb_stc_mcdi_mod_t;
+
 /** The single GPIO instance sub-structure */
 typedef struct
 {
     GPIO_PRT_Type * base; /**< Port Instance */
     uint32_t      pinNum; /**< Pin number */
 } mtb_stc_mcdi_gpio_t;
+/** \endcond */
 
 /** The configuration structure */
 typedef struct
 {
-    mtb_en_mcdi_topo_t                 topo; /**< Motor Control Topology */
-    uint32_t                    fastIntrMsk; /**< Fast Control Loop interrupt mask */
-    uint32_t                    slowIntrMsk; /**< Slow Control Loop interrupt mask */
-    uint32_t                  syncStartTrig; /**< Synchronous start TrigMux line */
-    TCPWM_Type *                  tcpwmBase; /**< TCPWM base */
-    mtb_stc_mcdi_pwm_t pwm[CY_MCDI_PWM_NUM]; /**< Array of PWM structures */
-    mtb_stc_mcdi_tmr_t tmr[CY_MCDI_TMR_NUM]; /**< Array of Timer structures */
-    mtb_stc_mcdi_gpio_t const *       fault; /**< Fault pin instance */
+    mtb_en_mcdi_topo_t                  topo; /**< Motor Control Topology */
+    uint32_t                     fastDivider; /**< PWM to Fast Loop Frequency Ratio */
+    uint32_t                     slowDivider; /**< Fast to Slow Loop Frequency Ratio */
+    float32_t                pwmClkFrequency; /**< PWM Clocking Frequency */
+    float32_t                 pwmSwFrequency; /**< PWM Switching Frequency */
+/** \cond Internal */
+    uint32_t                     fastIntrMsk; /**< Fast Control Loop interrupt mask */
+    uint32_t                     slowIntrMsk; /**< Slow Control Loop interrupt mask */
+    uint32_t                   syncStartTrig; /**< Synchronous start TrigMux line */
+    TCPWM_Type *                   tcpwmBase; /**< TCPWM base */
+    mtb_stc_mcdi_gpio_t const *        fault; /**< Fault pin instance */
+    mtb_stc_mcdi_pwm_t pwm[MTB_MCDI_PWM_NUM]; /**< Array of PWM structures */
+    mtb_stc_mcdi_tmr_t tmr[MTB_MCDI_TMR_NUM]; /**< Array of Timer structures */
+/** \endcond */
 } mtb_stc_mcdi_cfg_t;
 /** \} group_mcdi_data_structures */
 
+/** \cond Internal functions */
 /** \addtogroup group_mcdi_functions
  *  \{
  */
+
 /*******************************************************************************
 * Function Name: mtb_mcdi_init
 ****************************************************************************//**
-*
 * Initializes all MCDI Timers and PWMs.
 * The HPPASS is a common resource, it is initialized outside of the
 * solution level (it can be common for multiple solutions).
@@ -290,9 +319,6 @@ typedef struct
 * \param cfg The pointer to the configuration structure \ref mtb_stc_mcdi_cfg_t.
 *
 * \return The combined status if initialization of all the Timers and PWMs.
-*
-* \funcusage \snippet fut_dat_snippet/main.c SNIPPET_DAT_FLOW
-*
 *******************************************************************************/
 cy_rslt_t mtb_mcdi_init(mtb_stc_mcdi_cfg_t const * cfg);
 
@@ -300,16 +326,11 @@ cy_rslt_t mtb_mcdi_init(mtb_stc_mcdi_cfg_t const * cfg);
 /*******************************************************************************
 * Function Name: mtb_mcdi_enable
 ****************************************************************************//**
-*
-* Enables all MCDI Timers and PWMs.
-* After this action, they are sensitive to input triggers.
-*
-* \return The execution status.
+* Enables all MCDI Timers and PWMs. After this action, they are sensitive to input triggers.
 *
 * \param cfg The pointer to the configuration structure \ref mtb_stc_mcdi_cfg_t.
 *
-* \funcusage \snippet fut_dat_snippet/main.c SNIPPET_DAT_FLOW
-*
+* \return The execution status.
 *******************************************************************************/
 cy_rslt_t mtb_mcdi_enable(mtb_stc_mcdi_cfg_t const * cfg);
 
@@ -317,15 +338,11 @@ cy_rslt_t mtb_mcdi_enable(mtb_stc_mcdi_cfg_t const * cfg);
 /*******************************************************************************
 * Function Name: mtb_mcdi_disable
 ****************************************************************************//**
-*
-* Stops and Disables all MCDI Timers and PWMs.
-*
-* \return The execution status.
+* Disables (stops) all modulator required timers, provides backward interface compatibility.
 *
 * \param cfg The pointer to the configuration structure \ref mtb_stc_mcdi_cfg_t.
 *
-* \funcusage \snippet fut_dat_snippet/main.c SNIPPET_DAT_FLOW
-*
+* \return The execution status.
 *******************************************************************************/
 cy_rslt_t mtb_mcdi_disable(mtb_stc_mcdi_cfg_t const * cfg);
 
@@ -333,22 +350,16 @@ cy_rslt_t mtb_mcdi_disable(mtb_stc_mcdi_cfg_t const * cfg);
 /*******************************************************************************
 * Function Name: mtb_mcdi_start
 ****************************************************************************//**
-*
-* Starts all the PWMs and Sync and Fast Timers synchronously.
-* Starts the Slow Timer asynchronously after that.
-* The HPPASS is a common resource, it is configured and started before
-* this function execution.
+* Starts all modulator required timers, provides backward interface compatibility.
 *
 * \param cfg The pointer to the configuration structure \ref mtb_stc_mcdi_cfg_t.
 *
 * \return The Cy_TrigMux_SwTrigger status.
-*
-* \funcusage \snippet fut_dat_snippet/main.c SNIPPET_DAT_FLOW
-*
 *******************************************************************************/
 cy_rslt_t mtb_mcdi_start(mtb_stc_mcdi_cfg_t const * cfg);
 
 /** \} group_mcdi_functions */
+/** \endcond Internal functions */
 
 #if defined(__cplusplus)
 }

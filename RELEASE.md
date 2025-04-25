@@ -1,4 +1,4 @@
-# Motor Control Library Release Notes
+# ModusToolbox&trade; Motor Control Library 2.0
 
 Motor control library provides implementation of motor control algorithm to various control methods, control types and different motors. 
 
@@ -36,9 +36,12 @@ Below table provides details of the different control type, controlled entity, f
 
 ### What Changed?
 
-#### v1.9.0
-
-* Support for PSOCC3 and the Motor Control Driver Interface has been added.
+The Motor Control Driver Interface has been revised to 2.0 with new features: 
+* DMA support 
+* ADC channels flexibility
+* New API for ADC and Modulator 
+* Bridge driver and fault input flexibility
+* Bug fixes
 
 ### Supported Software and Tools
 
@@ -46,13 +49,15 @@ This version of the motor control library was validated for compatibility with t
 
 | Software and Tools                 | Version                            |
 | ---------------------------------- | ---------------------------------- |
-| ModusToolbox™ Software Environment | 3.3.0                              |
+| ModusToolbox™ Software Environment | 3.5.0                              |
 | GCC Compiler                       | 11.3.1                             |
+| ARM Compiler                       | 6.22.0                             |
 | IAR Compiler                       | 9.50.2                             |
 | Motor Control Kit                  | KIT_XMC7200_DC_V1 & KIT_PSC3M5_CC2 |
 | MCU                                | PSOCC3 & XMC7000                   |
 
-Minimum required ModusToolbox™ Software Environment: v3.3
+Minimum required ModusToolbox™ Software Environment: v3.5<br>
+Minimum required PDL CAT1: v3.16
 
 ### Known Limitation
 
@@ -68,4 +73,4 @@ Use the following links for more information, as needed:
 
 ---
 
-© Cypress Semiconductor Corporation (an Infineon company) or an affiliate of Cypress Semiconductor Corporation, 2019-2024.
+© Cypress Semiconductor Corporation (an Infineon company) or an affiliate of Cypress Semiconductor Corporation, 2019-2025.
