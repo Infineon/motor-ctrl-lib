@@ -147,4 +147,5 @@ typedef struct
 #endif
 } CTRL_VARS_t;
 
-extern CTRL_VARS_t vars;
+extern CTRL_VARS_t vars[MOTOR_CTRL_NO_OF_MOTOR];
+

@@ -78,7 +78,7 @@ typedef struct
     uint32_t uvw_idx_prev;  // [%], Indices for converting from XYZ to UVW
 } VOLT_MOD_t;
 
-void VOLT_MOD_Init();
-void VOLT_MOD_RunISR0();
-void VOLT_MOD_EnDisHybMod(EN_DIS_t en);
-void HybridModRunISR0();
+void VOLT_MOD_Init(MOTOR_t *motor_ptr);
+void VOLT_MOD_RunISR0(MOTOR_t *motor_ptr);
+void VOLT_MOD_EnDisHybMod(MOTOR_t *motor_ptr,EN_DIS_t en);
+void HybridModRunISR0(MOTOR_t *motor_ptr);

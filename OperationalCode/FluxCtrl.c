@@ -35,21 +35,29 @@
 #if defined(CTRL_METHOD_SFO)
 #include "Controller.h"
 
-void FLUX_CTRL_Init(const float bw_red_ratio)
+void FLUX_CTRL_Init(MOTOR_t *motor_ptr,const float bw_red_ratio)
 {
-    PI_UpdateParams(&ctrl.flux.pi, params.ctrl.flux.kp * bw_red_ratio, params.ctrl.flux.ki * POW_TWO(bw_red_ratio) * params.sys.samp.ts0, -params.ctrl.flux.vd_max, params.ctrl.flux.vd_max);
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+    PI_UpdateParams(&ctrl_ptr->flux.pi, params_ptr->ctrl.flux.kp * bw_red_ratio, params_ptr->ctrl.flux.ki * POW_TWO(bw_red_ratio) * params_ptr->sys.samp.ts0, -params_ptr->ctrl.flux.vd_max, params_ptr->ctrl.flux.vd_max);
 }
 
-void FLUX_CTRL_Reset()
+void FLUX_CTRL_Reset(MOTOR_t *motor_ptr)
 {
-    PI_Reset(&ctrl.flux.pi);
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+
+    PI_Reset(&ctrl_ptr->flux.pi);
 }
 
 RAMFUNC_BEGIN
-void FLUX_CTRL_RunISR0()
+void FLUX_CTRL_RunISR0(MOTOR_t *motor_ptr)
 {
-    PI_Run(&ctrl.flux.pi, vars.la_cmd_final, vars.la_qd_s_est.d, 0.0f);
-    vars.v_qd_s_cmd.d = ctrl.flux.pi.output;
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
+    PI_Run(&ctrl_ptr->flux.pi, vars_ptr->la_cmd_final, vars_ptr->la_qd_s_est.d, 0.0f);
+    vars_ptr->v_qd_s_cmd.d = ctrl_ptr->flux.pi.output;
 }
 RAMFUNC_END
 

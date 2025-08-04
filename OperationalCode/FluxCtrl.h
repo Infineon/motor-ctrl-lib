@@ -40,8 +40,8 @@ typedef struct
     PI_t pi;
 } FLUX_CTRL_t;
 
-void FLUX_CTRL_Init(const float bw_red_ratio);
-void FLUX_CTRL_Reset();
-void FLUX_CTRL_RunISR0();
+void FLUX_CTRL_Init(MOTOR_t *motor_ptr,const float bw_red_ratio);
+void FLUX_CTRL_Reset(MOTOR_t *motor_ptr);
+void FLUX_CTRL_RunISR0(MOTOR_t *motor_ptr);
 
 #endif

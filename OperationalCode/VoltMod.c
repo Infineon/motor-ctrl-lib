@@ -31,24 +31,29 @@
 * so agrees to indemnify Cypress against all liability.
 *******************************************************************************/
 
-
 #include "Controller.h"
 #if defined(PC_TEST)
-#define ADC_CS_SETTLE_RATIO	(0.5f)  // [], settling ratio used for single-shunt current sampling
+
+static void (*NeutPointOrSpaceVectModISR0Wrap[MOTOR_CTRL_NO_OF_MOTOR])() = {EmptyFcn };   // Neutral point or space vector modulation (both single and three shunt)
+static void (*HybridModRunISR0Wrap[MOTOR_CTRL_NO_OF_MOTOR])() = { EmptyFcn };   // Hybrid modulation for single shunt configuration
+static void (*CurrReconstRunISR0Wrap[MOTOR_CTRL_NO_OF_MOTOR])() = {EmptyFcn };   // Calculating current-reconstruction sample times for single shunt configuration
+
 #else
-#include "MotorCtrlHWConfig.h"
+static void (*NeutPointOrSpaceVectModISR0Wrap[MOTOR_CTRL_NO_OF_MOTOR])() = { [0 ... (MOTOR_CTRL_NO_OF_MOTOR - 1)] = EmptyFcn };   // Neutral point or space vector modulation (both single and three shunt)
+static void (*HybridModRunISR0Wrap[MOTOR_CTRL_NO_OF_MOTOR])() = { [0 ... (MOTOR_CTRL_NO_OF_MOTOR - 1)] = EmptyFcn };   // Hybrid modulation for single shunt configuration
+static void (*CurrReconstRunISR0Wrap[MOTOR_CTRL_NO_OF_MOTOR])() = { [0 ... (MOTOR_CTRL_NO_OF_MOTOR - 1)] = EmptyFcn };   // Calculating current-reconstruction sample times for single shunt configuration
 #endif
 
-static void (*NeutPointOrSpaceVectModISR0Wrap)() = &EmptyFcn;   // Neutral point or space vector modulation (both single and three shunt)
-static void (*HybridModRunISR0Wrap)() = &EmptyFcn;              // Hybrid modulation for single shunt configuration
-static void (*CurrReconstRunISR0Wrap)() = &EmptyFcn;            // Calculating current-reconstruction sample times for single shunt configuration
-
 RAMFUNC_BEGIN
-static void SVMRunISR0()
+static void SVMRunISR0(MOTOR_t *motor_ptr)
 {
-    float sector_variable_x = -vars.v_ab_cmd_tot.beta * TWO_OVER_SQRT_THREE;
-    float sector_variable_y = vars.v_ab_cmd_tot.alpha + vars.v_ab_cmd_tot.beta * ONE_OVER_SQRT_THREE;
-    float sector_variable_z = vars.v_ab_cmd_tot.alpha - vars.v_ab_cmd_tot.beta * ONE_OVER_SQRT_THREE;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+
+    float sector_variable_x = -vars_ptr->v_ab_cmd_tot.beta * TWO_OVER_SQRT_THREE;
+    float sector_variable_y = vars_ptr->v_ab_cmd_tot.alpha + vars_ptr->v_ab_cmd_tot.beta * ONE_OVER_SQRT_THREE;
+    float sector_variable_z = vars_ptr->v_ab_cmd_tot.alpha - vars_ptr->v_ab_cmd_tot.beta * ONE_OVER_SQRT_THREE;
 
     if (sector_variable_z >= 0.0f)					// Sectors 1, 2 and 6
     {
@@ -56,22 +61,22 @@ static void SVMRunISR0()
         {
             if (sector_variable_x >= 0.0f)			// Sector 1
             {
-                ctrl.volt_mod.svm.v_first = sector_variable_y;
-                ctrl.volt_mod.svm.v_second = sector_variable_x;
-                ctrl.volt_mod.svm.sector = 1;
+                ctrl_ptr->volt_mod.svm.v_first = sector_variable_y;
+                ctrl_ptr->volt_mod.svm.v_second = sector_variable_x;
+                ctrl_ptr->volt_mod.svm.sector = 1;
             }
             else									//Sector 6
             {
-                ctrl.volt_mod.svm.v_first = sector_variable_z;
-                ctrl.volt_mod.svm.v_second = -sector_variable_x;
-                ctrl.volt_mod.svm.sector = 6;
+                ctrl_ptr->volt_mod.svm.v_first = sector_variable_z;
+                ctrl_ptr->volt_mod.svm.v_second = -sector_variable_x;
+                ctrl_ptr->volt_mod.svm.sector = 6;
             }
         }
         else										//Sector 2
         {
-            ctrl.volt_mod.svm.v_first = -sector_variable_y;
-            ctrl.volt_mod.svm.v_second = sector_variable_z;
-            ctrl.volt_mod.svm.sector = 2;
+            ctrl_ptr->volt_mod.svm.v_first = -sector_variable_y;
+            ctrl_ptr->volt_mod.svm.v_second = sector_variable_z;
+            ctrl_ptr->volt_mod.svm.sector = 2;
         }
     }
     else   											// Sectors 3, 4 and 5
@@ -80,60 +85,60 @@ static void SVMRunISR0()
         {
             if (sector_variable_x >= 0.0f)			// Sector 3
             {
-                ctrl.volt_mod.svm.v_first = sector_variable_x;
-                ctrl.volt_mod.svm.v_second = -sector_variable_z;
-                ctrl.volt_mod.svm.sector = 3;
+                ctrl_ptr->volt_mod.svm.v_first = sector_variable_x;
+                ctrl_ptr->volt_mod.svm.v_second = -sector_variable_z;
+                ctrl_ptr->volt_mod.svm.sector = 3;
             }
             else									// Sector 4
             {
-                ctrl.volt_mod.svm.v_first = -sector_variable_x;
-                ctrl.volt_mod.svm.v_second = -sector_variable_y;
-                ctrl.volt_mod.svm.sector = 4;
+                ctrl_ptr->volt_mod.svm.v_first = -sector_variable_x;
+                ctrl_ptr->volt_mod.svm.v_second = -sector_variable_y;
+                ctrl_ptr->volt_mod.svm.sector = 4;
             }
         }
         else										// Sector 5
         {
-            ctrl.volt_mod.svm.v_first = -sector_variable_z;
-            ctrl.volt_mod.svm.v_second = sector_variable_y;
-            ctrl.volt_mod.svm.sector = 5;
+            ctrl_ptr->volt_mod.svm.v_first = -sector_variable_z;
+            ctrl_ptr->volt_mod.svm.v_second = sector_variable_y;
+            ctrl_ptr->volt_mod.svm.sector = 5;
         }
     }
 
-    float max_voltage_inv = 1.5f * ctrl.volt_mod.v_dc_inv;
-    ctrl.volt_mod.svm.duty_first = ctrl.volt_mod.svm.v_first * max_voltage_inv;
-    ctrl.volt_mod.svm.duty_second = ctrl.volt_mod.svm.v_second * max_voltage_inv;
-    float total_duty = ctrl.volt_mod.svm.duty_first + ctrl.volt_mod.svm.duty_second;
+    float max_voltage_inv = 1.5f * ctrl_ptr->volt_mod.v_dc_inv;
+    ctrl_ptr->volt_mod.svm.duty_first = ctrl_ptr->volt_mod.svm.v_first * max_voltage_inv;
+    ctrl_ptr->volt_mod.svm.duty_second = ctrl_ptr->volt_mod.svm.v_second * max_voltage_inv;
+    float total_duty = ctrl_ptr->volt_mod.svm.duty_first + ctrl_ptr->volt_mod.svm.duty_second;
     if (total_duty <= 1.0f)
     {
-        ctrl.volt_mod.svm.duty_zero = 1.0f - total_duty;
+        ctrl_ptr->volt_mod.svm.duty_zero = 1.0f - total_duty;
     }
     else  // overmodulation mode I 
     {
-        ctrl.volt_mod.svm.duty_first = ctrl.volt_mod.svm.duty_first / total_duty;
-        ctrl.volt_mod.svm.duty_second = 1.0f - ctrl.volt_mod.svm.duty_first;
-        ctrl.volt_mod.svm.duty_zero = 0.0f;
+        ctrl_ptr->volt_mod.svm.duty_first = ctrl_ptr->volt_mod.svm.duty_first / total_duty;
+        ctrl_ptr->volt_mod.svm.duty_second = 1.0f - ctrl_ptr->volt_mod.svm.duty_first;
+        ctrl_ptr->volt_mod.svm.duty_zero = 0.0f;
         // TBD: Figuring out a way to avoid duty_zero = 0 for current sensing.
         // One way to deal with it could be defining the MI and going to overmodulation with minimum a defined on-time for LS FET
     }
 
-    ctrl.volt_mod.mi = vars.v_s_cmd.rad * max_voltage_inv;
-    ctrl.volt_mod.mi_filt += (ctrl.volt_mod.mi - ctrl.volt_mod.mi_filt) * params.ctrl.volt.five_seg.w0_filt * params.sys.samp.ts0;
-    if (params.ctrl.volt.five_seg.en == En)
+    ctrl_ptr->volt_mod.mi = vars_ptr->v_s_cmd.rad * max_voltage_inv;
+    ctrl_ptr->volt_mod.mi_filt += (ctrl_ptr->volt_mod.mi - ctrl_ptr->volt_mod.mi_filt) * params_ptr->ctrl.volt.five_seg.w0_filt * params_ptr->sys.samp.ts0;
+    if (params_ptr->ctrl.volt.five_seg.en == En)
     {
         // 5-segment vs 7-segment determination
-        if (ctrl.volt_mod.mi_filt > params.ctrl.volt.five_seg.active_mi)
+        if (ctrl_ptr->volt_mod.mi_filt > params_ptr->ctrl.volt.five_seg.active_mi)
         {
-            ctrl.volt_mod.svm.five_segment = true;
+            ctrl_ptr->volt_mod.svm.five_segment = true;
         }
-        else if (ctrl.volt_mod.mi_filt < params.ctrl.volt.five_seg.inactive_mi)
+        else if (ctrl_ptr->volt_mod.mi_filt < params_ptr->ctrl.volt.five_seg.inactive_mi)
         {
-            ctrl.volt_mod.svm.five_segment = false;
+            ctrl_ptr->volt_mod.svm.five_segment = false;
         }
 
         // 5-segment vs 7-segment voltage application
-        if (ctrl.volt_mod.svm.five_segment)
+        if (ctrl_ptr->volt_mod.svm.five_segment)
         {
-            ctrl.volt_mod.svm.duty_zero *= 2.0f;
+            ctrl_ptr->volt_mod.svm.duty_zero *= 2.0f;
         }
     }
 
@@ -145,56 +150,56 @@ static void SVMRunISR0()
     *     v1  v2  v0  v2  v1          v1  v2  v0  v2  v1          v1  v2  v0  v2  v1          v1  v2  v0  v2  v1          v1  v2  v0  v2  v1          v1  v2  v0  v2  v1
     * ************************************/
 
-    ctrl.volt_mod.uvw_idx_prev = ctrl.volt_mod.uvw_idx;
-    switch (ctrl.volt_mod.svm.sector)
+    ctrl_ptr->volt_mod.uvw_idx_prev = ctrl_ptr->volt_mod.uvw_idx;
+    switch (ctrl_ptr->volt_mod.svm.sector)
     {
     default:
     case 0x1:	// sector 1
-        vars.d_uvw_cmd.u = 1.0f - ctrl.volt_mod.svm.duty_zero * 0.5f;
-        vars.d_uvw_cmd.v = vars.d_uvw_cmd.u - ctrl.volt_mod.svm.duty_first;
-        vars.d_uvw_cmd.w = vars.d_uvw_cmd.v - ctrl.volt_mod.svm.duty_second;
-        ctrl.volt_mod.xyz_idx = THREE_BYTES_TO_WORD(0U, 1U, 2U);
-        ctrl.volt_mod.uvw_idx = THREE_BYTES_TO_WORD(0U, 1U, 2U);
+        vars_ptr->d_uvw_cmd.u = 1.0f - ctrl_ptr->volt_mod.svm.duty_zero * 0.5f;
+        vars_ptr->d_uvw_cmd.v = vars_ptr->d_uvw_cmd.u - ctrl_ptr->volt_mod.svm.duty_first;
+        vars_ptr->d_uvw_cmd.w = vars_ptr->d_uvw_cmd.v - ctrl_ptr->volt_mod.svm.duty_second;
+        ctrl_ptr->volt_mod.xyz_idx = THREE_BYTES_TO_WORD(0U, 1U, 2U);
+        ctrl_ptr->volt_mod.uvw_idx = THREE_BYTES_TO_WORD(0U, 1U, 2U);
 
         break;
     case 0x2:	// sector 2
-        vars.d_uvw_cmd.v = 1.0f - ctrl.volt_mod.svm.duty_zero * 0.5f;
-        vars.d_uvw_cmd.u = vars.d_uvw_cmd.v - ctrl.volt_mod.svm.duty_first;
-        vars.d_uvw_cmd.w = vars.d_uvw_cmd.u - ctrl.volt_mod.svm.duty_second;
-        ctrl.volt_mod.xyz_idx = THREE_BYTES_TO_WORD(1U, 0U, 2U);
-        ctrl.volt_mod.uvw_idx = THREE_BYTES_TO_WORD(1U, 0U, 2U);
+        vars_ptr->d_uvw_cmd.v = 1.0f - ctrl_ptr->volt_mod.svm.duty_zero * 0.5f;
+        vars_ptr->d_uvw_cmd.u = vars_ptr->d_uvw_cmd.v - ctrl_ptr->volt_mod.svm.duty_first;
+        vars_ptr->d_uvw_cmd.w = vars_ptr->d_uvw_cmd.u - ctrl_ptr->volt_mod.svm.duty_second;
+        ctrl_ptr->volt_mod.xyz_idx = THREE_BYTES_TO_WORD(1U, 0U, 2U);
+        ctrl_ptr->volt_mod.uvw_idx = THREE_BYTES_TO_WORD(1U, 0U, 2U);
 
         break;
     case 0x3:	// sector 3
-        vars.d_uvw_cmd.v = 1.0f - ctrl.volt_mod.svm.duty_zero * 0.5f;
-        vars.d_uvw_cmd.w = vars.d_uvw_cmd.v - ctrl.volt_mod.svm.duty_first;
-        vars.d_uvw_cmd.u = vars.d_uvw_cmd.w - ctrl.volt_mod.svm.duty_second;
-        ctrl.volt_mod.xyz_idx = THREE_BYTES_TO_WORD(1U, 2U, 0U);
-        ctrl.volt_mod.uvw_idx = THREE_BYTES_TO_WORD(2U, 0U, 1U);
+        vars_ptr->d_uvw_cmd.v = 1.0f - ctrl_ptr->volt_mod.svm.duty_zero * 0.5f;
+        vars_ptr->d_uvw_cmd.w = vars_ptr->d_uvw_cmd.v - ctrl_ptr->volt_mod.svm.duty_first;
+        vars_ptr->d_uvw_cmd.u = vars_ptr->d_uvw_cmd.w - ctrl_ptr->volt_mod.svm.duty_second;
+        ctrl_ptr->volt_mod.xyz_idx = THREE_BYTES_TO_WORD(1U, 2U, 0U);
+        ctrl_ptr->volt_mod.uvw_idx = THREE_BYTES_TO_WORD(2U, 0U, 1U);
 
         break;
     case 0x4:	// sector 4
-        vars.d_uvw_cmd.w = 1.0f - ctrl.volt_mod.svm.duty_zero * 0.5f;
-        vars.d_uvw_cmd.v = vars.d_uvw_cmd.w - ctrl.volt_mod.svm.duty_first;
-        vars.d_uvw_cmd.u = vars.d_uvw_cmd.v - ctrl.volt_mod.svm.duty_second;
-        ctrl.volt_mod.xyz_idx = THREE_BYTES_TO_WORD(2U, 1U, 0U);
-        ctrl.volt_mod.uvw_idx = THREE_BYTES_TO_WORD(2U, 1U, 0U);
+        vars_ptr->d_uvw_cmd.w = 1.0f - ctrl_ptr->volt_mod.svm.duty_zero * 0.5f;
+        vars_ptr->d_uvw_cmd.v = vars_ptr->d_uvw_cmd.w - ctrl_ptr->volt_mod.svm.duty_first;
+        vars_ptr->d_uvw_cmd.u = vars_ptr->d_uvw_cmd.v - ctrl_ptr->volt_mod.svm.duty_second;
+        ctrl_ptr->volt_mod.xyz_idx = THREE_BYTES_TO_WORD(2U, 1U, 0U);
+        ctrl_ptr->volt_mod.uvw_idx = THREE_BYTES_TO_WORD(2U, 1U, 0U);
 
         break;
     case 0x5:	// sector 5
-        vars.d_uvw_cmd.w = 1.0f - ctrl.volt_mod.svm.duty_zero * 0.5f;
-        vars.d_uvw_cmd.u = vars.d_uvw_cmd.w - ctrl.volt_mod.svm.duty_first;
-        vars.d_uvw_cmd.v = vars.d_uvw_cmd.u - ctrl.volt_mod.svm.duty_second;
-        ctrl.volt_mod.xyz_idx = THREE_BYTES_TO_WORD(2U, 0U, 1U);
-        ctrl.volt_mod.uvw_idx = THREE_BYTES_TO_WORD(1U, 2U, 0U);
+        vars_ptr->d_uvw_cmd.w = 1.0f - ctrl_ptr->volt_mod.svm.duty_zero * 0.5f;
+        vars_ptr->d_uvw_cmd.u = vars_ptr->d_uvw_cmd.w - ctrl_ptr->volt_mod.svm.duty_first;
+        vars_ptr->d_uvw_cmd.v = vars_ptr->d_uvw_cmd.u - ctrl_ptr->volt_mod.svm.duty_second;
+        ctrl_ptr->volt_mod.xyz_idx = THREE_BYTES_TO_WORD(2U, 0U, 1U);
+        ctrl_ptr->volt_mod.uvw_idx = THREE_BYTES_TO_WORD(1U, 2U, 0U);
 
         break;
     case 0x6:	// sector 6
-        vars.d_uvw_cmd.u = 1.0f - ctrl.volt_mod.svm.duty_zero * 0.5f;
-        vars.d_uvw_cmd.w = vars.d_uvw_cmd.u - ctrl.volt_mod.svm.duty_first;
-        vars.d_uvw_cmd.v = vars.d_uvw_cmd.w - ctrl.volt_mod.svm.duty_second;
-        ctrl.volt_mod.xyz_idx = THREE_BYTES_TO_WORD(0U, 2U, 1U);
-        ctrl.volt_mod.uvw_idx = THREE_BYTES_TO_WORD(0U, 2U, 1U);
+        vars_ptr->d_uvw_cmd.u = 1.0f - ctrl_ptr->volt_mod.svm.duty_zero * 0.5f;
+        vars_ptr->d_uvw_cmd.w = vars_ptr->d_uvw_cmd.u - ctrl_ptr->volt_mod.svm.duty_first;
+        vars_ptr->d_uvw_cmd.v = vars_ptr->d_uvw_cmd.w - ctrl_ptr->volt_mod.svm.duty_second;
+        ctrl_ptr->volt_mod.xyz_idx = THREE_BYTES_TO_WORD(0U, 2U, 1U);
+        ctrl_ptr->volt_mod.uvw_idx = THREE_BYTES_TO_WORD(0U, 2U, 1U);
 
         break;
     }
@@ -202,109 +207,126 @@ static void SVMRunISR0()
 RAMFUNC_END
 
 RAMFUNC_BEGIN
-static void NPMRunISR0()
+static void NPMRunISR0(MOTOR_t *motor_ptr)
 {
-    ClarkeTransformInv(&vars.v_ab_cmd_tot, &vars.v_uvw_n_cmd);
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
 
-    ctrl.volt_mod.uvw_idx_prev = ctrl.volt_mod.uvw_idx;
-    SortUVW(&vars.v_uvw_n_cmd, &ctrl.volt_mod.xyz_idx, &ctrl.volt_mod.uvw_idx);
+    ClarkeTransformInv(&vars_ptr->v_ab_cmd_tot, &vars_ptr->v_uvw_n_cmd);
 
-    float* v_uvw_cmd = STRUCT_TO_ARRAY(vars.v_uvw_n_cmd);
+    ctrl_ptr->volt_mod.uvw_idx_prev = ctrl_ptr->volt_mod.uvw_idx;
+    SortUVW(&vars_ptr->v_uvw_n_cmd, &ctrl_ptr->volt_mod.xyz_idx, &ctrl_ptr->volt_mod.uvw_idx);
 
-    ctrl.volt_mod.npm.v_neutral = -0.5f * (v_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 0U)] + v_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 2U)]);
+    float* v_uvw_cmd = STRUCT_TO_ARRAY(vars_ptr->v_uvw_n_cmd);
 
-    vars.v_uvw_z_cmd.u = vars.v_uvw_n_cmd.u + ctrl.volt_mod.npm.v_neutral;
-    vars.v_uvw_z_cmd.v = vars.v_uvw_n_cmd.v + ctrl.volt_mod.npm.v_neutral;
-    vars.v_uvw_z_cmd.w = vars.v_uvw_n_cmd.w + ctrl.volt_mod.npm.v_neutral;
+    ctrl_ptr->volt_mod.npm.v_neutral = -0.5f * (v_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 0U)] + v_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 2U)]);
 
-    vars.d_uvw_cmd.u = SAT(0.0f, 1.0f, vars.v_uvw_z_cmd.u * ctrl.volt_mod.v_dc_inv + 0.5f);
-    vars.d_uvw_cmd.v = SAT(0.0f, 1.0f, vars.v_uvw_z_cmd.v * ctrl.volt_mod.v_dc_inv + 0.5f);
-    vars.d_uvw_cmd.w = SAT(0.0f, 1.0f, vars.v_uvw_z_cmd.w * ctrl.volt_mod.v_dc_inv + 0.5f);
+    vars_ptr->v_uvw_z_cmd.u = vars_ptr->v_uvw_n_cmd.u + ctrl_ptr->volt_mod.npm.v_neutral;
+    vars_ptr->v_uvw_z_cmd.v = vars_ptr->v_uvw_n_cmd.v + ctrl_ptr->volt_mod.npm.v_neutral;
+    vars_ptr->v_uvw_z_cmd.w = vars_ptr->v_uvw_n_cmd.w + ctrl_ptr->volt_mod.npm.v_neutral;
 
-    ctrl.volt_mod.mi = vars.v_s_cmd.rad * ctrl.volt_mod.v_dc_inv * 1.5f; // 2/3Vdc = 100% modulation
+    vars_ptr->d_uvw_cmd.u = SAT(0.0f, 1.0f, vars_ptr->v_uvw_z_cmd.u * ctrl_ptr->volt_mod.v_dc_inv + 0.5f);
+    vars_ptr->d_uvw_cmd.v = SAT(0.0f, 1.0f, vars_ptr->v_uvw_z_cmd.v * ctrl_ptr->volt_mod.v_dc_inv + 0.5f);
+    vars_ptr->d_uvw_cmd.w = SAT(0.0f, 1.0f, vars_ptr->v_uvw_z_cmd.w * ctrl_ptr->volt_mod.v_dc_inv + 0.5f);
+
+    ctrl_ptr->volt_mod.mi = vars_ptr->v_s_cmd.rad * ctrl_ptr->volt_mod.v_dc_inv * 1.5f; // 2/3Vdc = 100% modulation
 }
 RAMFUNC_END
 
+
 RAMFUNC_BEGIN
-void CurrReconstRunISR0()
+void CurrReconstRunISR0(MOTOR_t *motor_ptr)
 {
-    float* d_uvw_cmd = STRUCT_TO_ARRAY(vars.d_uvw_cmd);
-    vars.d_samp[1] = ADC_CS_SETTLE_RATIO * d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 0U)] + (1.0f - ADC_CS_SETTLE_RATIO) * d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 1U)];
-    vars.d_samp[0] = ADC_CS_SETTLE_RATIO * d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 1U)] + (1.0f - ADC_CS_SETTLE_RATIO) * d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 2U)];
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+    float* d_uvw_cmd = STRUCT_TO_ARRAY(vars_ptr->d_uvw_cmd);
+    vars_ptr->d_samp[1] = params_ptr->sys.analog.shunt.cs_settle_raio * d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 0U)] + (1.0f - params_ptr->sys.analog.shunt.cs_settle_raio) * d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 1U)];
+    vars_ptr->d_samp[0] = params_ptr->sys.analog.shunt.cs_settle_raio * d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 1U)] + (1.0f - params_ptr->sys.analog.shunt.cs_settle_raio) * d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 2U)];
 
 #if defined(PC_TEST)
-    float d_xyz_cmd[3] = { d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 0U)], d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 1U)], d_uvw_cmd[WORD_TO_BYTE(ctrl.volt_mod.xyz_idx, 2U)] };
-    vars.test[77] = d_xyz_cmd[0];
-    vars.test[78] = d_xyz_cmd[1];
-    vars.test[79] = d_xyz_cmd[2];
-    vars.test[80] = d_xyz_cmd[WORD_TO_BYTE(ctrl.volt_mod.uvw_idx, 0U)];
-    vars.test[81] = d_xyz_cmd[WORD_TO_BYTE(ctrl.volt_mod.uvw_idx, 1U)];
-    vars.test[82] = d_xyz_cmd[WORD_TO_BYTE(ctrl.volt_mod.uvw_idx, 2U)];
-    vars.test[83] = vars.d_samp[0];
-    vars.test[84] = vars.d_samp[1];
-    vars.test[85] = (vars.d_samp[0] - 0.5f) * vars.v_dc;
-    vars.test[86] = (vars.d_samp[1] - 0.5f) * vars.v_dc;
+    float d_xyz_cmd[3] = { d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 0U)], d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 1U)], d_uvw_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.xyz_idx, 2U)] };
+    vars_ptr->test[77] = d_xyz_cmd[0];
+    vars_ptr->test[78] = d_xyz_cmd[1];
+    vars_ptr->test[79] = d_xyz_cmd[2];
+    vars_ptr->test[80] = d_xyz_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.uvw_idx, 0U)];
+    vars_ptr->test[81] = d_xyz_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.uvw_idx, 1U)];
+    vars_ptr->test[82] = d_xyz_cmd[WORD_TO_BYTE(ctrl_ptr->volt_mod.uvw_idx, 2U)];
+    vars_ptr->test[83] = vars_ptr->d_samp[0];
+    vars_ptr->test[84] = vars_ptr->d_samp[1];
+    vars_ptr->test[85] = (vars_ptr->d_samp[0] - 0.5f) * vars_ptr->v_dc;
+    vars_ptr->test[86] = (vars_ptr->d_samp[1] - 0.5f) * vars_ptr->v_dc;
 #endif
 }
 RAMFUNC_END
 
 RAMFUNC_BEGIN
-void VOLT_MOD_RunISR0()
+void VOLT_MOD_RunISR0(MOTOR_t *motor_ptr)
 {
-    ctrl.volt_mod.v_dc_inv = 1.0f / vars.v_dc;
-    vars.v_s_cmd.rad = sqrtf(POW_TWO(vars.v_ab_cmd_tot.alpha) + POW_TWO(vars.v_ab_cmd_tot.beta));
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
 
-    HybridModRunISR0Wrap();
+	ctrl_ptr->volt_mod.v_dc_inv = 1.0f / vars_ptr->v_dc;
+	vars_ptr->v_s_cmd.rad = sqrtf(POW_TWO(vars_ptr->v_ab_cmd_tot.alpha) + POW_TWO(vars_ptr->v_ab_cmd_tot.beta));
 
-    NeutPointOrSpaceVectModISR0Wrap();
+    HybridModRunISR0Wrap[motor_ptr->motor_instance](motor_ptr);
 
-    CurrReconstRunISR0Wrap();
+    NeutPointOrSpaceVectModISR0Wrap[motor_ptr->motor_instance](motor_ptr);
+
+    CurrReconstRunISR0Wrap[motor_ptr->motor_instance](motor_ptr);
 }
 RAMFUNC_END
 
-void VOLT_MOD_Init()
+void VOLT_MOD_Init(MOTOR_t *motor_ptr)
 {
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+
     // Modulation method:
-    switch (params.ctrl.volt.mod_method)
+    switch (params_ptr->ctrl.volt.mod_method)
     {
     default:
     case Neutral_Point_Modulation:
-        NeutPointOrSpaceVectModISR0Wrap = NPMRunISR0;
+        NeutPointOrSpaceVectModISR0Wrap[motor_ptr->motor_instance] = NPMRunISR0;
         break;
     case Space_Vector_Modulation:
-        NeutPointOrSpaceVectModISR0Wrap = SVMRunISR0;
+        NeutPointOrSpaceVectModISR0Wrap[motor_ptr->motor_instance] = SVMRunISR0;
         break;
     }
 
     // Three-shunt or single-shunt:
-    if (params.sys.analog.shunt.type == Single_Shunt)
+    if (params_ptr->sys.analog.shunt.type == Single_Shunt)
     {
-        VOLT_MOD_EnDisHybMod(En);
+        VOLT_MOD_EnDisHybMod(motor_ptr,En);
     }
     else
     {
-        VOLT_MOD_EnDisHybMod(Dis);
+        VOLT_MOD_EnDisHybMod(motor_ptr,Dis);
     }
 
-    ctrl.volt_mod.mi_filt = 0.0f;
+    ctrl_ptr->volt_mod.mi_filt = 0.0f;
 }
 
-void VOLT_MOD_EnDisHybMod(EN_DIS_t en)
+void VOLT_MOD_EnDisHybMod(MOTOR_t *motor_ptr,EN_DIS_t en)
 {
-    if ((ctrl.volt_mod.hm.status == En) && (en == Dis))
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
+    if ((ctrl_ptr->volt_mod.hm.status == En) && (en == Dis))
     {
-        ctrl.volt_mod.hm.status = Dis;
-        CurrReconstRunISR0Wrap = EmptyFcn;
-        HybridModRunISR0Wrap = EmptyFcn;
-        vars.d_samp[0] = 1.0f - FLT_EPSILON;
-        vars.d_samp[1] = 1.0f - FLT_EPSILON;
+    	ctrl_ptr->volt_mod.hm.status = Dis;
+        CurrReconstRunISR0Wrap[motor_ptr->motor_instance] = EmptyFcn;
+        HybridModRunISR0Wrap[motor_ptr->motor_instance] = EmptyFcn;
+        vars_ptr->d_samp[0] = 1.0f - FLT_EPSILON;
+        vars_ptr->d_samp[1] = 1.0f - FLT_EPSILON;
     }
-    else if ((ctrl.volt_mod.hm.status == Dis) && (en == En))
+    else if ((ctrl_ptr->volt_mod.hm.status == Dis) && (en == En))
     {
-        ctrl.volt_mod.hm.status = En;
-        CurrReconstRunISR0Wrap = CurrReconstRunISR0;
-        HybridModRunISR0Wrap = HybridModRunISR0;
-        ctrl.volt_mod.hm.th_error = 0.0f;
-        ctrl.volt_mod.hm.th_mod = 0.0f;
+    	ctrl_ptr->volt_mod.hm.status = En;
+        CurrReconstRunISR0Wrap[motor_ptr->motor_instance] = CurrReconstRunISR0;
+        HybridModRunISR0Wrap[motor_ptr->motor_instance] = HybridModRunISR0;
+        ctrl_ptr->volt_mod.hm.th_error = 0.0f;
+        ctrl_ptr->volt_mod.hm.th_mod = 0.0f;
     }
 }

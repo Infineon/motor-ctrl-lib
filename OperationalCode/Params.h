@@ -32,21 +32,27 @@
 *******************************************************************************/
 
 #pragma once
+#include "General.h"
+
+
+#ifndef MOTOR_CTRL_NO_OF_MOTOR
+#define MOTOR_CTRL_NO_OF_MOTOR (1)
+#endif
 
 // Latest firmware version, 0xAABC==vAA.B.C, Example: 0x0150==v1.5.0.
-#define FIRMWARE_VER			(0x0190UL)
+#define FIRMWARE_VER			(0x0300UL)
 #define PARAMS_CODE				(~0xBADC0DEUL)	// Do not change this code
-#define PARAMS_VER				(0x0003UL)		// Parameters version. Change when params struct changes.
-#define PARAMS_ALWAYS_OVERWRITE     (false)     // For testing only. Using this will ensure that parameters are always overwritten.
+#define PARAMS_VER				(0x0004UL)		// Parameters version. Change when params struct changes.
 #if defined(CTRL_METHOD_RFO)
 #define BUILD_CONFIG_ID			(0x0000UL)		// Indicating RFO build config
 #elif defined(CTRL_METHOD_SFO)
 #define BUILD_CONFIG_ID			(0x0001UL)		// Indicating SFO build config
 #elif defined(CTRL_METHOD_TBC)
 #define BUILD_CONFIG_ID			(0x0002UL)		// Indicating TBC build config
+#else
+#define BUILD_CONFIG_ID			(0x0000UL)		// Indicating RFO build config
 #endif
 
-#include "General.h"
 
 typedef struct
 {
@@ -137,19 +143,19 @@ typedef enum
     Three_Shunt = 0U,
     Single_Shunt
 } SHUNT_TYPE_t;
-#if defined(USING_SGD)
+
 typedef enum
 {
-    Gain_4 = 0U,
-    Gain_8 = 1U,
-    Gain_12 = 2U,
-    Gain_16 = 3U,
-    Gain_20 = 4U,
-    Gain_24 = 5U,
-    Gain_32 = 6U,
-    Gain_64 = 7U
-} SHUNT_OPAMP_GAIN_t;
-#endif
+   Shunt_Res = 0U,
+   Active_Sensor
+} CS_MEAS_TYPE_t;
+
+typedef enum
+{
+   LS_Current_Sense =  1, //Shunt or active sensor  at motor phase  and ground
+   HS_Current_Sense = -1  //Shunt or active sensor  at power supply and motor phase
+} CS_MEAS_POLARITY_t;
+
 typedef struct
 {
     float adc_t_min;    // [sec], minimum time for ADC sampling
@@ -160,19 +166,19 @@ typedef struct
 typedef struct
 {
     SHUNT_TYPE_t type;
-#if defined(USING_SGD)
-    SHUNT_OPAMP_GAIN_t opamp_gain;
-#else
     float opamp_gain;
-#endif
     SHUNT_HYB_MOD_t hyb_mod;    // hybrid modulation, for single shunt
-    float res;                  // [Ohm]
+    float res;                  // [Ohm] used for current sensor type as "Shunt_res"
+    float current_sensitivity;        // [V/A] used for current sensor type as "Active_Sensor"
+    int8_t current_sense_polarity;    
+    float cs_settle_raio;   
 } ANALOG_SHUNT_PARAMS_t;
 
 typedef struct
 {
     ANALOG_CALIB_PARAMS_t calib;
     ANALOG_FILT_PARAMS_t filt;
+    CS_MEAS_TYPE_t cs_meas_type;                /*current measurment type*/
     ANALOG_SHUNT_PARAMS_t shunt;
     float offset_null_time; // [sec], offset nulling time in init state
 } ANALOG_SENS_PARAMS_t;
@@ -259,7 +265,6 @@ typedef struct
 typedef struct
 {
     SAMPLE_PARAMS_t samp;			// [], sampling parameters
-    LUT_PARAMS_t lut;				// [#], luts
     ANALOG_SENS_PARAMS_t analog;	// [], analog sensor parameters
     RATE_LIM_PARAMS_t rate_lim;		// [], rate limiter parameters
     FAULT_PARAMS_t faults;			// [], fault parameters
@@ -331,6 +336,7 @@ typedef enum
 {
     Volt_Mode_Open_Loop = 0,					// Open-loop V/Hz control
 #if defined(CTRL_METHOD_RFO)
+    Curr_Mode_Open_Loop,                        // Open-loop current control
     Curr_Mode_FOC_Sensorless_Align_Startup,		// Closed-loop sensorless-foc current control with pre-alignment at startup
     Curr_Mode_FOC_Sensorless_SixPulse_Startup,	// Closed-loop sensorless-foc current control with six pulse injection at startup
     Curr_Mode_FOC_Sensorless_HighFreq_Startup,	// Closed-loop sensorless-foc current control with high frequency injection at startup
@@ -349,9 +355,10 @@ typedef enum
     Speed_Mode_FOC_Sensorless_Align_Startup,	// Closed-loop sensorless-foc speed control with pre-alignment at startup
     Speed_Mode_FOC_Sensorless_SixPulse_Startup,	// Closed-loop sensorless-foc speed control with six pulse injection at startup
     Speed_Mode_FOC_Sensorless_HighFreq_Startup,	// Closed-loop sensorless-foc speed control high frequency injection at startup
-    Speed_Mode_FOC_Sensorless_Volt_Startup,		// Closed-loop sensorless-foc speed control with open-loop V/Hz at startup
+    Speed_Mode_FOC_Sensorless_Volt_Startup,		// Closed-loop sensorless-foc speed control with open-loop voltage control at startup
 #endif
 #if defined(CTRL_METHOD_RFO)
+    Speed_Mode_FOC_Sensorless_Curr_Startup,		// Closed-loop sensorless-foc speed control with open-loop current control at startup
     Speed_Mode_FOC_Encoder_Align_Startup,       // Closed-loop sensored-foc speed control with encoder feedback and pre-alignment at startup
     Speed_Mode_FOC_Hall,						// Closed-loop sensored-foc speed control with hall sensor feedback
 #elif defined(CTRL_METHOD_TBC)
@@ -393,6 +400,7 @@ typedef struct
     float ff_coef;		// [#], feed forward coefficient
     float i_cmd_thresh;	// [A], threshold for transition to current control
     float i_cmd_hyst;	// [A], hysteresis for i_cmd_thresh
+    float i_cmd_ol;	    // [A], open-loop current command
 } CURRENT_CTRL_PARAMS_t;
 
 #elif defined(CTRL_METHOD_SFO)
@@ -629,18 +637,21 @@ typedef struct	// For external identification (e.g. GUI)
 #pragma pack(pop)
 
 
+extern PARAMS_t params[MOTOR_CTRL_NO_OF_MOTOR];
 
-
-extern PARAMS_t params;
+extern LUT_PARAMS_t params_lut;				// [#], luts
 
 extern MC_INFO_t mc_info;
 
-void PARAMS_Init();
-void PARAMS_InitManual();
-void PARAMS_InitAutoCalc();
+#if !defined(PC_TEST)
+void PARAMS_Init(MOTOR_t *motor_ptr);
+#endif
 
-void PARAMS_DEFAULT_Init();
-void PARAMS_DEFAULT_InitManual();
-void PARAMS_DEFAULT_InitAutoCalc();
+void PARAMS_InitManual(PARAMS_t* params_ptr);
+#if (MOTOR_CTRL_MOTOR1_ENABLED)
+void PARAMS_InitManual_M1(PARAMS_t* params_ptr);
+#endif
+void PARAMS_InitAutoCalc(PARAMS_t* params_ptr);
 
 
+void PARAMS_UpdateLookupTable(void);

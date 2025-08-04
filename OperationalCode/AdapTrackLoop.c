@@ -33,17 +33,16 @@
 
 #include "Controller.h"
 
-// TBD: add another (1/s) in the loop for better error response to ramp input
 
 void ADAP_TRACK_LOOP_SetSpeedFeedForwardForAdapGain(ADAP_TRACK_LOOP_t* atl_instance, ELEC_t* w_ff_adap_gain)
 {
     atl_instance->w_ff_adap_gain = w_ff_adap_gain;
 }
 
-void ADAP_TRACK_LOOP_Init(ADAP_TRACK_LOOP_t* atl_instance, ADAP_TRACK_LOOP_PARAMS_t* atl_params)
+void ADAP_TRACK_LOOP_Init(ADAP_TRACK_LOOP_t* atl_instance, ADAP_TRACK_LOOP_PARAMS_t* atl_params,float sample_time,float motor_poles)
 {
-    atl_instance->w_ff_coeff = atl_params->w0_w * params.sys.samp.ts0;
-    atl_instance->w_fb_coeff = ONE_OVER_TWO_PI * (float)(atl_params->cpr) / (0.5f * params.motor.P * atl_params->tau_ratio);
+    atl_instance->w_ff_coeff = atl_params->w0_w *sample_time;
+    atl_instance->w_fb_coeff = ONE_OVER_TWO_PI * (float)(atl_params->cpr) / (0.5f * motor_poles * atl_params->tau_ratio);
     atl_instance->w0_th = atl_params->w0_th;
     ADAP_TRACK_LOOP_SetSpeedFeedForwardForAdapGain(atl_instance, &atl_instance->w_ff_filt);
 }
@@ -60,7 +59,7 @@ void ADAP_TRACK_LOOP_Reset(ADAP_TRACK_LOOP_t* atl_instance, ELEC_t th0)
 }
 
 RAMFUNC_BEGIN
-void ADAP_TRACK_LOOP_RunISR0(ADAP_TRACK_LOOP_t* atl_instance)
+void ADAP_TRACK_LOOP_RunISR0(ADAP_TRACK_LOOP_t* atl_instance,float sample_time)
 {
     // Velocity feed forward filter
     atl_instance->w_ff_filt.elec += (atl_instance->w_ff.elec - atl_instance->w_ff_filt.elec) * atl_instance->w_ff_coeff;
@@ -68,6 +67,6 @@ void ADAP_TRACK_LOOP_RunISR0(ADAP_TRACK_LOOP_t* atl_instance)
     // Angle estimation loop
     atl_instance->adaptive_gain = SAT(atl_instance->w0_th.min, atl_instance->w0_th.max, atl_instance->w_fb_coeff * ABS(atl_instance->w_ff_adap_gain->elec));
     atl_instance->w_tot.elec = atl_instance->w_ff_filt.elec + atl_instance->adaptive_gain * Wrap2Pi(atl_instance->th_r_coarse.elec - atl_instance->th_r_est.elec);
-    atl_instance->th_r_est.elec = Wrap2Pi(atl_instance->th_r_est.elec + params.sys.samp.ts0 * atl_instance->w_tot.elec);
+    atl_instance->th_r_est.elec = Wrap2Pi(atl_instance->th_r_est.elec + sample_time * atl_instance->w_tot.elec);
 }
 RAMFUNC_END

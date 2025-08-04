@@ -61,8 +61,8 @@ typedef struct
 	PI_t pi_main;
 } TRAP_COMM_t;
 
-void TRAP_COMM_Init();
-void TRAP_COMM_Reset();
-void TRAP_COMM_RunISR0();
+void TRAP_COMM_Init(MOTOR_t *motor_ptr);
+void TRAP_COMM_Reset(MOTOR_t *motor_ptr);
+void TRAP_COMM_RunISR0(MOTOR_t *motor_ptr);
 
 #endif

@@ -31,11 +31,37 @@
 * so agrees to indemnify Cypress against all liability.
 *******************************************************************************/
 
-
+/*
+ * 	                    fcn_exe_handler.req (MotorID: [31-24],CMD: [0-23])
+CMD	                    Both Motor	 	Motor 0	       	Motor 1
+Auto_Calc_Params	       	0x1	      		NA				NA
+Reset_Modules	     		0x2				NA				NA
+Flash_Params				0x3				NA				NA
+Set_Tuning_Params_Slow		0x4[M0]		0x1000004 		0x2000004
+Set_Tuning_Params_Moderate	0x5[M0] 	0x1000005 		0x2000005
+Set_Tuning_Params_Fast		0x6[M0]		0x1000006 		0x2000006
+ *
+ */
 #include "Controller.h"
+
+#define GET_MOTOR_ID  ((fcn_exe_handler.req>>24)>>1)/*MSB[8 bit] contains motor id, motor[0] =>1, motor[1] =>2 */
+
+#define GET_MOTOR_IDs  (fcn_exe_handler.req>>24)& 0x3
 
 FCN_EXE_HANDLER_t fcn_exe_handler;
 
+bool ParameterUpdatedAllowed(void)
+{
+    bool ret_val =1;
+    for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+    {
+        if (!( (motor[count].sm_ptr->current == Init) ||(motor[count].sm_ptr->current == Fault))) /*Parameter update allowed only when motor is in init or fault state*/
+        {
+            ret_val =0;
+        }
+    }
+    return(ret_val);
+}
 inline FCN_EXE_REG_t FCN_EXE_HANDLER_Mask(FCN_EXE_LABEL_t fcn_label)
 {
     return (((FCN_EXE_REG_t)(0b1)) << (uint8_t)(fcn_label));
@@ -43,89 +69,138 @@ inline FCN_EXE_REG_t FCN_EXE_HANDLER_Mask(FCN_EXE_LABEL_t fcn_label)
 
 static void AutoCalcParamsWrapper()
 {
-    if (sm.current == Init) // only in init state, otherwise ignore
+    if (ParameterUpdatedAllowed()) // only in init state, otherwise ignore
     {
-        hw_fcn.StopPeripherals();
-
-        PARAMS_InitAutoCalc();
-
-        hw_fcn.StartPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+            hw_fcn.StopPeripherals(count);
+        }
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+            PARAMS_InitAutoCalc(motor[count].params_ptr);
+        }
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+            hw_fcn.StartPeripherals(count);
+        }
+    }
+    else
+    {
+        fcn_exe_handler.fault_flag.auto_cal_fault = true;
     }
     fcn_exe_handler.done |= FCN_EXE_HANDLER_Mask(Auto_Calc_Params);
 }
 
 static void ResetModulesWrapper()
 {
-    if (sm.current == Init) // only in init state, otherwise ignore
+    if (ParameterUpdatedAllowed()) // only in init state, otherwise ignore
     {
-        hw_fcn.StopPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+         hw_fcn.StopPeripherals(count);
+        }
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.HardwareIfaceInit(count);
+        }
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          STATE_MACHINE_ResetAllModules(&motor[count]);
+          StopWatchInit(&motor[count].sm_ptr->vars.init.timer, motor[count].params_ptr->sys.analog.offset_null_time, motor[count].params_ptr->sys.samp.ts0);
+          motor[count].sm_ptr->vars.init.offset_null_done = false;
+        }
 
-        hw_fcn.HardwareIfaceInit();
-        STATE_MACHINE_ResetAllModules();
-
-        StopWatchInit(&sm.vars.init.timer, params.sys.analog.offset_null_time, params.sys.samp.ts0);
-        sm.vars.init.offset_null_done = false;
-
-        hw_fcn.StartPeripherals();
+    	for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+    	{
+          hw_fcn.StartPeripherals(count);
+    	}
     }
     fcn_exe_handler.done |= FCN_EXE_HANDLER_Mask(Reset_Modules);
 }
 
 static void FlashParamsWrapper()
 {
-    if (sm.current == Init) // only in init state, otherwise ignore
+    if (ParameterUpdatedAllowed()) // only in init state, otherwise ignore
     {
-        hw_fcn.StopPeripherals();
-
-        hw_fcn.FlashWrite(&params);
-
-        hw_fcn.StartPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StopPeripherals(count);
+        }
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.FlashWrite(count,motor[count].params_ptr);
+        }
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StartPeripherals(count);
+        };
+    }
+    else
+    {
+        fcn_exe_handler.fault_flag.write_flash_fault = true;
     }
     fcn_exe_handler.done |= FCN_EXE_HANDLER_Mask(Flash_Params);
 }
 
 static void SetTuningParamsSlowWrapper()
 {
-    if (sm.current == Init) // only in init state, otherwise ignore
+    if (ParameterUpdatedAllowed()) // only in init state, otherwise ignore
     {
-        hw_fcn.StopPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StopPeripherals(count);
+        }
 
-        PROFILER_SetTuningParams(Slow);
-        PARAMS_InitAutoCalc();
-
-        hw_fcn.StartPeripherals();
+        PROFILER_SetTuningParams(motor[GET_MOTOR_ID].params_ptr,Slow);
+        PARAMS_InitAutoCalc(motor[GET_MOTOR_ID].params_ptr);
+        
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+            hw_fcn.StartPeripherals(count);
+        }
     }
     fcn_exe_handler.done |= FCN_EXE_HANDLER_Mask(Set_Tuning_Params_Slow);
 }
 
 static void SetTuningParamsModerateWrapper()
 {
-    if (sm.current == Init) // only in init state, otherwise ignore
+    if (ParameterUpdatedAllowed()) // only in init state, otherwise ignore
     {
-        hw_fcn.StopPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StopPeripherals(count);
+        }
 
-        PROFILER_SetTuningParams(Moderate);
-        PARAMS_InitAutoCalc();
+        PROFILER_SetTuningParams(motor[GET_MOTOR_ID].params_ptr,Moderate);
+        PARAMS_InitAutoCalc(motor[GET_MOTOR_ID].params_ptr);
 
-        hw_fcn.StartPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StartPeripherals(count);
+        }
     }
     fcn_exe_handler.done |= FCN_EXE_HANDLER_Mask(Set_Tuning_Params_Moderate);
 }
 
 static void SetTuningParamsFastWrapper()
 {
-    if (sm.current == Init) // only in init state, otherwise ignore
+    if (ParameterUpdatedAllowed()) // only in init state, otherwise ignore
     {
-        hw_fcn.StopPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StopPeripherals(count);
+        }
 
-        PROFILER_SetTuningParams(Fast);
-        PARAMS_InitAutoCalc();
+        PROFILER_SetTuningParams(motor[GET_MOTOR_ID].params_ptr,Fast);
+        PARAMS_InitAutoCalc(motor[GET_MOTOR_ID].params_ptr);
 
-        hw_fcn.StartPeripherals();
+        for(int count=0; count<MOTOR_CTRL_NO_OF_MOTOR; count++ )
+        {
+          hw_fcn.StartPeripherals(count);
+        }
     }
     fcn_exe_handler.done |= FCN_EXE_HANDLER_Mask(Set_Tuning_Params_Fast);
 }
-
 
 void FCN_EXE_HANDLER_Init()
 {
@@ -160,11 +235,12 @@ void FCN_EXE_HANDLER_RunISR1()
             fcn_exe_handler.ack |= fcn_mask;
             fcn_exe_handler.done &= ~fcn_mask;
             fcn_exe_handler.callback[fcn_index]();    // done is set in callback
-            callback_triggered = true;  // only tirgger one callback (highest priority) per each ISR
+            callback_triggered = true;  // only trigger one callback (highest priority) per each ISR
         }
         else if (!req && ack && done)
         {
             fcn_exe_handler.ack &= ~fcn_mask;
+            fcn_exe_handler.fault_flag.word_access =0;
         }
 
     }

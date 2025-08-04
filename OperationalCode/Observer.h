@@ -59,8 +59,8 @@ typedef struct
     BILINEAR_INTEG_t bilinear_3;
 } FLUX_FILT_t;
 
-void FLUX_FILT_Reset(FLUX_FILT_t* flux_filt, const float la_lead_0);
-float FLUX_FILT_Run(FLUX_FILT_t* flux_filt, const float input);
+void FLUX_FILT_Reset(MOTOR_t *motor_ptr,FLUX_FILT_t* flux_filt, const float la_lead_0);
+float FLUX_FILT_Run(MOTOR_t *motor_ptr,FLUX_FILT_t* flux_filt, const float input);
 
 typedef struct
 {
@@ -81,8 +81,8 @@ typedef struct
     PARK_t phase_comp;
 } OBS_t;
 
-extern OBS_t obs;
+extern OBS_t obs[MOTOR_CTRL_NO_OF_MOTOR];
 
-void OBS_Init();
-void OBS_Reset(AB_t* la_ab_lead, ELEC_t* w0, ELEC_t* th0);
-void OBS_RunISR0();
+void OBS_Init(MOTOR_t *motor_ptr);
+void OBS_Reset(MOTOR_t *motor_ptr,AB_t* la_ab_lead, ELEC_t* w0, ELEC_t* th0);
+void OBS_RunISR0(MOTOR_t *motor_ptr);

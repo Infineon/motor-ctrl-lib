@@ -37,19 +37,22 @@
 void BIQUAD_PoleZeroInit(BIQUAD_t* biquad, const float fs, const float k, const float wz[2], const float wp[2])
 {
     biquad->k = k;
+    float wz_inv[2], wp_inv[2];
     for (uint8_t index = 0; index < 2; ++index)
     {
         biquad->wz[index] = wz[index];
         biquad->wp[index] = wp[index];
+        wz_inv[index] = isinf(wz[index]) ? 0.0f : 1.0f / wz[index];
+        wp_inv[index] = isinf(wp[index]) ? 0.0f : 1.0f / wp[index];
     }
 
     float a[3], b[3];
     a[0] = biquad->k;
-    a[1] = biquad->k * (1.0f / biquad->wz[0] + 1.0f / biquad->wz[1]);
-    a[2] = biquad->k / (biquad->wz[0] * biquad->wz[1]);
+    a[1] = biquad->k * (wz_inv[0] + wz_inv[1]);
+    a[2] = biquad->k * (wz_inv[0] * wz_inv[1]);
     b[0] = 1.0f;
-    b[1] = 1.0f / biquad->wp[0] + 1.0f / biquad->wp[1];
-    b[2] = 1.0f / (biquad->wp[0] * biquad->wp[1]);
+    b[1] = (wp_inv[0] + wp_inv[1]);
+    b[2] = (wp_inv[0] * wp_inv[1]);
 
     BIQUAD_ContinuousInit(biquad, fs, a, b);
 }

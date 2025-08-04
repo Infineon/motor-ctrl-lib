@@ -76,10 +76,10 @@ typedef struct
     DIGITAL_INPUT_t digital;
 } SENSOR_IFACE_t;
 
-extern SENSOR_IFACE_t sensor_iface;
+extern SENSOR_IFACE_t sensor_iface[MOTOR_CTRL_NO_OF_MOTOR];
 
-void SENSOR_IFACE_Init();
-void SENSOR_IFACE_Reset();
-void SENSOR_IFACE_RunISR0();	// for fast variables
-void SENSOR_IFACE_RunISR1();	// for slow variables
-void SENSOR_IFACE_OffsetNullISR0();	// Current-sensor offset nulling in init state
+void SENSOR_IFACE_Init(MOTOR_t *motor_ptr);
+void SENSOR_IFACE_Reset(MOTOR_t *motor_ptr);
+void SENSOR_IFACE_RunISR0(MOTOR_t *motor_ptr);	// for fast variables
+void SENSOR_IFACE_RunISR1(MOTOR_t *motor_ptr);	// for slow variables
+void SENSOR_IFACE_OffsetNullISR0(MOTOR_t *motor_ptr);	// Current-sensor offset nulling in init state

@@ -33,17 +33,30 @@
 
 
 #include "Controller.h"
+CTRL_t ctrl[MOTOR_CTRL_NO_OF_MOTOR]= { 0 };
+CTRL_VARS_t vars[MOTOR_CTRL_NO_OF_MOTOR] = { 0 };
 
-CTRL_t ctrl;
+/*Static library function variables declaration */
+INC_ENCODER_t inc_encoder[MOTOR_CTRL_NO_OF_MOTOR] = { 0 };
+OBS_t obs[MOTOR_CTRL_NO_OF_MOTOR]= { 0 };
+#if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
+PROFILER_t profiler[MOTOR_CTRL_NO_OF_MOTOR] = { 0 };
+#endif
 
-void CTRL_ResetWcmdInt(const ELEC_t w0)
+
+void CTRL_ResetWcmdInt(MOTOR_t *motor_ptr, const ELEC_t w0)
 {
-    vars.w_cmd_int.elec = w0.elec * vars.dir;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
+    vars_ptr->w_cmd_int.elec = w0.elec * vars_ptr->dir;
 }
 
 RAMFUNC_BEGIN
-void CTRL_UpdateWcmdIntISR0(const ELEC_MECH_t w_target)
+void CTRL_UpdateWcmdIntISR1(MOTOR_t *motor_ptr,const ELEC_MECH_t w_target)
 {
-    vars.w_cmd_int.elec = RateLimit(params.sys.rate_lim.w_cmd.elec * params.sys.samp.ts0, w_target.elec, vars.w_cmd_int.elec);
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+	vars_ptr->w_cmd_int.elec = RateLimit(params_ptr->sys.rate_lim.w_cmd.elec * params_ptr->sys.samp.ts1, w_target.elec, vars_ptr->w_cmd_int.elec);
 }
 RAMFUNC_END

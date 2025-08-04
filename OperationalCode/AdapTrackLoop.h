@@ -56,6 +56,6 @@ typedef struct
 } ADAP_TRACK_LOOP_t;
 
 void ADAP_TRACK_LOOP_SetSpeedFeedForwardForAdapGain(ADAP_TRACK_LOOP_t* atl_instance, ELEC_t* w_ff_adap_gain); // w_ff_filt by default
-void ADAP_TRACK_LOOP_Init(ADAP_TRACK_LOOP_t* atl_instance, ADAP_TRACK_LOOP_PARAMS_t* atl_params);
+void ADAP_TRACK_LOOP_Init(ADAP_TRACK_LOOP_t* atl_instance, ADAP_TRACK_LOOP_PARAMS_t* atl_params, float sample_time,float motor_poles);
 void ADAP_TRACK_LOOP_Reset(ADAP_TRACK_LOOP_t* atl_instance, ELEC_t th0);
-void ADAP_TRACK_LOOP_RunISR0(ADAP_TRACK_LOOP_t* atl_instance);
+void ADAP_TRACK_LOOP_RunISR0(ADAP_TRACK_LOOP_t* atl_instance,float sample_time);

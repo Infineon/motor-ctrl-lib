@@ -30,11 +30,13 @@
 * of such system or application assumes all risk of such use and in doing
 * so agrees to indemnify Cypress against all liability.
 *******************************************************************************/
-
 #pragma once
 
-// Note: PC_TEST = REGRESSION_TEST || SIL_TEST
 
+struct MOTOR_str;
+typedef struct MOTOR_str MOTOR_t;
+
+#include "Params.h"
 #include "Biquad.h"
 #include "CtrlFilts.h"
 #include "CtrlVars.h"
@@ -43,10 +45,10 @@
 #include "General.h"
 #include "HallSensor.h"
 #include "Observer.h"
-#include "Params.h"
 #include "PLL.h"
 #include "ResonantFilt.h"
 #include "SensorIface.h"
+#include "NotchFilt.h"
 #include "SpeedCtrl.h"
 #include "StateMachine.h"
 #include "VoltCtrl.h"
@@ -99,23 +101,47 @@ typedef struct
     VOLT_MOD_t volt_mod;
 } CTRL_t;
 
-extern CTRL_t ctrl;
+
+extern CTRL_t ctrl[MOTOR_CTRL_NO_OF_MOTOR];
 
 typedef struct
 {	// hardware interface function pointers
-    void (*HardwareIfaceInit)();
+    void (*HardwareIfaceInit)(uint8_t motor_id);
     void (*EnterCriticalSection)();
     void (*ExitCriticalSection)();
-    void (*GateDriverEnterHighZ)();
-    void (*GateDriverExitHighZ)();
-    void (*StartPeripherals)();			// PWMs, ADCs, DMA, ISRs
-    void (*StopPeripherals)();			// PWMs, ADCs, DMA, ISRs
-    bool (*FlashRead)(PARAMS_ID_t id, PARAMS_t* ram_data);
-    bool (*FlashWrite)(PARAMS_t* ram_data);
-    bool (*ArePhaseVoltagesMeasured)();	// can change based on high-z state
+    void (*GateDriverEnterHighZ)(uint8_t motor_id);
+    void (*GateDriverExitHighZ)(uint8_t motor_id);
+    void (*StartPeripherals)(uint8_t motor_id);			// PWMs, ADCs, DMA, ISRs
+    void (*StopPeripherals)(uint8_t motor_id);			// PWMs, ADCs, DMA, ISRs
+    bool (*FlashRead)(uint8_t motor_id, PARAMS_ID_t id, PARAMS_t* ram_data);
+    bool (*FlashWrite)(uint8_t motor_id, PARAMS_t* ram_data);
+    bool (*ArePhaseVoltagesMeasured)(uint8_t motor_id);	// can change based on high-z state
 } HW_FCN_t;
+
+struct MOTOR_str
+{
+    const uint8_t motor_instance;
+    STATE_MACHINE_t* const sm_ptr;
+    CTRL_VARS_t* const vars_ptr;
+    CTRL_t* const ctrl_ptr;
+    PARAMS_t* const params_ptr;
+    OBS_t* const obs_ptr;
+    FAULTS_t* const faults_ptr;
+    PROTECT_t* const protect_ptr;
+    HALL_SENS_t* const hall_ptr;
+    SENSOR_IFACE_t*  const sensor_iface_ptr;
+    INC_ENCODER_t* const inc_encoder_ptr;
+
+#if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
+	PROFILER_t* const profiler_ptr;
+#endif
+
+};
 
 extern HW_FCN_t hw_fcn;
 
-void CTRL_ResetWcmdInt(const ELEC_t w0);
-void CTRL_UpdateWcmdIntISR0(const ELEC_MECH_t w_target);
+extern MOTOR_t motor[MOTOR_CTRL_NO_OF_MOTOR];
+
+void CTRL_ResetWcmdInt(MOTOR_t *Motor_ptr,const ELEC_t w0);
+void CTRL_UpdateWcmdIntISR1(MOTOR_t *Motor_ptr,const ELEC_MECH_t w_target);
+

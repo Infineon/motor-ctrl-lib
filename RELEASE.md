@@ -1,4 +1,4 @@
-# ModusToolbox&trade; Motor Control Library 2.0
+# ModusToolbox&trade; Motor Control Library 3.0
 
 Motor control library provides implementation of motor control algorithm to various control methods, control types and different motors. 
 
@@ -11,6 +11,7 @@ Below table provides details of the different control type, controlled entity, f
 | Control Type      | Controlled Entity | Feedback Type | Start up Method          |
 |:----------------- |:----------------- |:------------- |:------------------------ |
 | Open Loop         | Voltage           | N.A.          | N.A.                     |
+| Open Loop in RFO  | Current           | N.A		    | N.A				       |
 | FOC in RFO        | Current           | Sensorless    | Rotor Pre-Alignment      |
 | FOC in RFO        | Current           | Sensorless    | Six Pulse Injection      |
 | FOC in RFO        | Current           | Sensorless    | High Frequency Injection |
@@ -27,6 +28,7 @@ Below table provides details of the different control type, controlled entity, f
 | FOC in RFO or SFO | Speed             | Sensorless    | Six Pulse Injection      |
 | FOC in RFO or SFO | Speed             | Sensorless    | High Frequency Injection |
 | FOC in RFO or SFO | Speed             | Sensorless    | Open-Loop Volt/Hz        |
+| FOC in RFO	    | Speed             | Sensorless    | Open-Loop Current        |
 | FOC in RFO*       | Speed             | Encoder       | Rotor Pre-Alignment      |
 | FOC in RFO        | Speed             | Hall Sensor   | N.A.                     |
 | TBC in BC         | Speed             | Hall Sensor   | N.A.                     |
@@ -36,11 +38,12 @@ Below table provides details of the different control type, controlled entity, f
 
 ### What Changed?
 
-The Motor Control Driver Interface has been revised to 2.0 with new features: 
-* DMA support 
-* ADC channels flexibility
-* New API for ADC and Modulator 
-* Bridge driver and fault input flexibility
+The Motor Control library has been revised to 3.0 with new features: 
+* Multiple motor driver support 
+* Current control based startup method
+* Speed control loop code execution, changed from ISR0 to ISR1
+* Removed motor control hardware configuration 
+* Removed parameter configuration 
 * Bug fixes
 
 ### Supported Software and Tools

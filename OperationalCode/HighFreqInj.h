@@ -38,21 +38,6 @@
 #include "Biquad.h"
 #include "PLL.h"
 
-// INPUTS:
-// vars.w_final_filt,		from vars.w_est
-// vars.i_ab_fb_tot,
-
-// OUTPUTS:
-// ctrl.high_freq_inj.v_ab_cmd,	added to the main voltage components
-// vars.w_est,
-// vars.th_r_est,
-// vars.th_s_est,			SFO
-// vars.delta_est,			SFO
-// vars.la_qd_s_est, 		SFO
-// vars.park_r,
-// vars.park_s,				SFO
-// vars.i_qd_r_fb,
-// vars.i_qd_s_fb,			SFO
 
 typedef struct
 {
@@ -79,10 +64,10 @@ typedef struct
     AB_t v_ab_cmd;
 } HIGH_FREQ_INJ_t;
 
-void HIGH_FREQ_INJ_Init();
-void HIGH_FREQ_INJ_Reset(const ELEC_t w0, const ELEC_t th0);
-void HIGH_FREQ_INJ_RunFiltISR0(); // Current separation filters
-void HIGH_FREQ_INJ_RunCtrlISR0();
-void HIGH_FREQ_INJ_RunISR0();
+void HIGH_FREQ_INJ_Init(MOTOR_t *motor_ptr);
+void HIGH_FREQ_INJ_Reset(MOTOR_t *motor_ptr, const ELEC_t w0, const ELEC_t th0);
+void HIGH_FREQ_INJ_RunFiltISR0(MOTOR_t *motor_ptr); // Current separation filters
+void HIGH_FREQ_INJ_RunCtrlISR0(MOTOR_t *motor_ptr);
+void HIGH_FREQ_INJ_RunISR0(MOTOR_t *motor_ptr);
 
 #endif

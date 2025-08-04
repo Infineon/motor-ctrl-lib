@@ -44,8 +44,8 @@ typedef struct
     float bw;
 } DELTA_CTRL_t;
 
-void DELTA_CTRL_Init();
-void DELTA_CTRL_Reset();
-void DELTA_CTRL_RunISR0();
+void DELTA_CTRL_Init(MOTOR_t *motor_ptr);
+void DELTA_CTRL_Reset(MOTOR_t *motor_ptr);
+void DELTA_CTRL_RunISR0(MOTOR_t *motor_ptr);
 
 #endif

@@ -45,8 +45,8 @@ typedef struct
     PI_t pi;
 } SPEED_CTRL_t;
 
-void SPEED_CTRL_Init();
-void SPEED_CTRL_Reset();
-void SPEED_CTRL_RunISR0();
-void SPEED_CTRL_IntegBackCalc(const float cmd); // cmd = i_cmd_spd or T_cmd_spd
+void SPEED_CTRL_Init(MOTOR_t *motor_ptr);
+void SPEED_CTRL_Reset(MOTOR_t *motor_ptr);
+void SPEED_CTRL_RunISR1(MOTOR_t *motor_ptr);
+void SPEED_CTRL_IntegBackCalc(MOTOR_t *motor_ptr,const float cmd); // cmd = i_cmd_spd or T_cmd_spd
 

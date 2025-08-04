@@ -43,8 +43,8 @@ typedef struct
     float dl_over_lam;
 } PHASE_ADV_t;
 
-void PHASE_ADV_Init();
-void PHASE_ADV_RunISR0();
-void PHASE_ADV_CalcOptIs(QD_t* i_qd, float* i_s); // For given i_qd what is optimum i_s?
+void PHASE_ADV_Init(MOTOR_t *motor_ptr);
+void PHASE_ADV_RunISR1(MOTOR_t *motor_ptr);
+void PHASE_ADV_CalcOptIs(MOTOR_t *motor_ptr,QD_t* i_qd, float* i_s); // For given i_qd what is optimum i_s?
 
 #endif

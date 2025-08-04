@@ -36,84 +36,112 @@
 
 #if defined(CTRL_METHOD_RFO)
 
-void CURRENT_CTRL_Init(const float bw_red_coeff)
+void CURRENT_CTRL_Init(MOTOR_t *motor_ptr, const float bw_red_coeff)
 {
-    PI_UpdateParams(&ctrl.curr.pi_q, params.ctrl.curr.kp.q * bw_red_coeff, params.ctrl.curr.ki.q * bw_red_coeff * params.sys.samp.ts0, -params.ctrl.curr.v_max.q, params.ctrl.curr.v_max.q);
-    PI_UpdateParams(&ctrl.curr.pi_d, params.ctrl.curr.kp.d * bw_red_coeff, params.ctrl.curr.ki.d * bw_red_coeff * params.sys.samp.ts0, -params.ctrl.curr.v_max.d, params.ctrl.curr.v_max.d);
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+    PI_UpdateParams(&ctrl_ptr->curr.pi_q, params_ptr->ctrl.curr.kp.q * bw_red_coeff, params_ptr->ctrl.curr.ki.q * bw_red_coeff * params_ptr->sys.samp.ts0, -params_ptr->ctrl.curr.v_max.q, params_ptr->ctrl.curr.v_max.q);
+    PI_UpdateParams(&ctrl_ptr->curr.pi_d, params_ptr->ctrl.curr.kp.d * bw_red_coeff, params_ptr->ctrl.curr.ki.d * bw_red_coeff * params_ptr->sys.samp.ts0, -params_ptr->ctrl.curr.v_max.d, params_ptr->ctrl.curr.v_max.d);
+    ctrl_ptr->curr.en_ff = true;
 };
 
-void CURRENT_CTRL_Reset()
+void CURRENT_CTRL_Reset(MOTOR_t *motor_ptr)
 {
-    PI_Reset(&ctrl.curr.pi_q);
-    PI_Reset(&ctrl.curr.pi_d);
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+
+    PI_Reset(&ctrl_ptr->curr.pi_q);
+    PI_Reset(&ctrl_ptr->curr.pi_d);
 }
 
 RAMFUNC_BEGIN
-void CURRENT_CTRL_RunISR0()
+void CURRENT_CTRL_RunISR0(MOTOR_t *motor_ptr)
 {
-    if (!sm.vars.high_freq.used) // handled by high freqeuncy injection module due to required frequency spectrum separation
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    STATE_MACHINE_t* sm_ptr = motor_ptr->sm_ptr;
+
+    if (!sm_ptr->vars.high_freq.used) // handled by high freqeuncy injection module due to required frequency spectrum separation
     {
         // Current rotation
-        ParkInit(vars.th_r_final.elec, &vars.park_r);
-        ParkTransform(&vars.i_ab_fb, &vars.park_r, &vars.i_qd_r_fb);
+        ParkInit(vars_ptr->th_r_final.elec, &vars_ptr->park_r);
+        ParkTransform(&vars_ptr->i_ab_fb, &vars_ptr->park_r, &vars_ptr->i_qd_r_fb);
     }
 
     // Flux calculations
-    vars.la_qd_r_est.q = params.motor.lq * vars.i_qd_r_fb.q;
-    vars.la_qd_r_est.d = params.motor.ld * vars.i_qd_r_fb.d + params.motor.lam;
+    vars_ptr->la_qd_r_est.q = params_ptr->motor.lq * vars_ptr->i_qd_r_fb.q;
+    vars_ptr->la_qd_r_est.d = params_ptr->motor.ld * vars_ptr->i_qd_r_fb.d + params_ptr->motor.lam;
 
     // Feed forwards
-    ctrl.curr.ff.q = vars.la_qd_r_est.d * vars.w_final.elec * params.ctrl.curr.ff_coef;
-    ctrl.curr.ff.d = -vars.la_qd_r_est.q * vars.w_final.elec * params.ctrl.curr.ff_coef;
+    if (ctrl_ptr->curr.en_ff)
+    {
+        ctrl_ptr->curr.ff.q = vars_ptr->la_qd_r_est.d * vars_ptr->w_final.elec * params_ptr->ctrl.curr.ff_coef;
+        ctrl_ptr->curr.ff.d = -vars_ptr->la_qd_r_est.q * vars_ptr->w_final.elec * params_ptr->ctrl.curr.ff_coef;
+    }
+    else
+    {
+    	ctrl_ptr->curr.ff = (QD_t){ 0.0f, 0.0f };
+    }
 
     // PIs
-    PI_Run(&ctrl.curr.pi_q, vars.i_qd_r_cmd.q, vars.i_qd_r_fb.q, ctrl.curr.ff.q);
-    PI_Run(&ctrl.curr.pi_d, vars.i_qd_r_cmd.d, vars.i_qd_r_fb.d, ctrl.curr.ff.d);
-    vars.v_qd_r_cmd.q = ctrl.curr.pi_q.output;
-    vars.v_qd_r_cmd.d = ctrl.curr.pi_d.output;
+    PI_Run(&ctrl_ptr->curr.pi_q, vars_ptr->i_qd_r_cmd.q, vars_ptr->i_qd_r_fb.q, ctrl_ptr->curr.ff.q);
+    PI_Run(&ctrl_ptr->curr.pi_d, vars_ptr->i_qd_r_cmd.d, vars_ptr->i_qd_r_fb.d, ctrl_ptr->curr.ff.d);
+    vars_ptr->v_qd_r_cmd.q = ctrl_ptr->curr.pi_q.output;
+    vars_ptr->v_qd_r_cmd.d = ctrl_ptr->curr.pi_d.output;
 
     // Voltage derotation
-    ParkTransformInv(&vars.v_qd_r_cmd, &vars.park_r, &vars.v_ab_cmd);
-    vars.v_ab_cmd_tot = vars.v_ab_cmd;
-    if (sm.vars.high_freq.used) // adding high frequency excitation components
+    ParkTransformInv(&vars_ptr->v_qd_r_cmd, &vars_ptr->park_r, &vars_ptr->v_ab_cmd);
+    vars_ptr->v_ab_cmd_tot = vars_ptr->v_ab_cmd;
+    if (sm_ptr->vars.high_freq.used) // adding high frequency excitation components
     {
-        vars.v_ab_cmd_tot.alpha += ctrl.high_freq_inj.v_ab_cmd.alpha;
-        vars.v_ab_cmd_tot.beta += ctrl.high_freq_inj.v_ab_cmd.beta;
+        vars_ptr->v_ab_cmd_tot.alpha += ctrl_ptr->high_freq_inj.v_ab_cmd.alpha;
+        vars_ptr->v_ab_cmd_tot.beta += ctrl_ptr->high_freq_inj.v_ab_cmd.beta;
     }
 }
 RAMFUNC_END
 
 #elif defined(CTRL_METHOD_TBC)
 
-void CURRENT_CTRL_Init()
+void CURRENT_CTRL_Init(MOTOR_t *motor_ptr)
 {
-    PI_UpdateParams(&ctrl.curr.pi, params.ctrl.curr.kp, params.ctrl.curr.ki * params.sys.samp.ts0, -params.ctrl.curr.v_max, params.ctrl.curr.v_max);
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+
+    PI_UpdateParams(&ctrl_ptr->curr.pi, params_ptr->ctrl.curr.kp, params_ptr->ctrl.curr.ki * params_ptr->sys.samp.ts0, -params_ptr->ctrl.curr.v_max, params_ptr->ctrl.curr.v_max);
+#if defined(PC_TEST)
+    ctrl_ptr->curr.en_ff = true;
+#else
+    ctrl_ptr->curr.en_ff = false;
+#endif
 };
 
-void CURRENT_CTRL_Reset()
+void CURRENT_CTRL_Reset(MOTOR_t *motor_ptr)
 {
-    PI_Reset(&ctrl.curr.pi);
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+
+    PI_Reset(&ctrl_ptr->curr.pi);
 }
 
 RAMFUNC_BEGIN
-void CURRENT_CTRL_RunISR0()
+void CURRENT_CTRL_RunISR0(MOTOR_t *motor_ptr)
 {
-    // Feed forward
-#if defined(PC_TEST)
-    ctrl.curr.ff = params.motor.lam * vars.w_cmd_int.elec * params.ctrl.curr.ff_coef;
-#else
-    ctrl.curr.ff = 0.0f; // TBD: unstability observed when using feedforwad
-#endif
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-    if (params.ctrl.curr.bypass)
+    // Feed forward
+    ctrl_ptr->curr.ff = ctrl_ptr->curr.en_ff ? (params_ptr->motor.lam * vars_ptr->w_cmd_int.elec * params_ptr->ctrl.curr.ff_coef) : 0.0f;
+
+    if (params_ptr->ctrl.curr.bypass)
     {
-        vars.v_s_cmd.rad = params.ctrl.curr.k_bypass * vars.i_cmd_int + ctrl.curr.ff;
+        vars_ptr->v_s_cmd.rad = params_ptr->ctrl.curr.k_bypass * vars_ptr->i_cmd_int + ctrl_ptr->curr.ff;
     }
     else
     {
         // PI
-        PI_Run(&ctrl.curr.pi, vars.i_cmd_int, vars.i_s_fb, ctrl.curr.ff);
-        vars.v_s_cmd.rad = ctrl.curr.pi.output;
+        PI_Run(&ctrl_ptr->curr.pi, vars_ptr->i_cmd_int, vars_ptr->i_s_fb, ctrl_ptr->curr.ff);
+        vars_ptr->v_s_cmd.rad = ctrl_ptr->curr.pi.output;
     }
 }
 RAMFUNC_END

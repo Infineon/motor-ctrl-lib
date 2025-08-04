@@ -35,6 +35,9 @@
 *                                           FUNCTION PROTOTYPES
 *********************************************************************************************************
 */
+#ifndef MOTOR_CTRL_NO_OF_SCOPE_CHANNELS
+#define MOTOR_CTRL_NO_OF_SCOPE_CHANNELS (4U)
+#endif
 
 void     ProbeScope_Init     (uint32_t  sampling_clk_hz);
 void     ProbeScope_Sampling (void);

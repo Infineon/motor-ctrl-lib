@@ -35,44 +35,52 @@
 #if defined(CTRL_METHOD_RFO)
 #include "Controller.h"
 
-void PHASE_ADV_Init()
+void PHASE_ADV_Init(MOTOR_t *motor_ptr)
 {
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
     static const float DL_Min = 1E-9f;	// [H]
-    float dl = params.motor.lq - params.motor.ld;
+    float dl = params_ptr->motor.lq - params_ptr->motor.ld;
     if (ABS(dl) < DL_Min)
     {
-        ctrl.ph_adv.motor_type = SPM;
-        ctrl.ph_adv.lam_over_dl = 0.0f;
+        ctrl_ptr->ph_adv.motor_type = SPM;
+        ctrl_ptr->ph_adv.lam_over_dl = 0.0f;
     }
     else
     {
-        ctrl.ph_adv.motor_type = IPM;
-        ctrl.ph_adv.lam_over_dl = params.motor.lam / dl;
+        ctrl_ptr->ph_adv.motor_type = IPM;
+        ctrl_ptr->ph_adv.lam_over_dl = params_ptr->motor.lam / dl;
     }
-    ctrl.ph_adv.dl_over_lam = dl / params.motor.lam;
+    ctrl_ptr->ph_adv.dl_over_lam = dl / params_ptr->motor.lam;
 }
 
 RAMFUNC_BEGIN
-void PHASE_ADV_RunISR0()
+void PHASE_ADV_RunISR1(MOTOR_t *motor_ptr)
 {
-    if (ctrl.ph_adv.motor_type == SPM)
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+
+    if (ctrl_ptr->ph_adv.motor_type == SPM)
     {
-        vars.i_qd_r_ref.d = 0.0f;
-        vars.i_qd_r_ref.q = vars.i_cmd_int;
+    	vars_ptr->i_qd_r_ref.d = 0.0f;
+    	vars_ptr->i_qd_r_ref.q = vars_ptr->i_cmd_int;
     }
     else // IPM
     {
-        vars.i_qd_r_ref.d = 0.25f * (ctrl.ph_adv.lam_over_dl - sqrtf(POW_TWO(ctrl.ph_adv.lam_over_dl) + 8.0f * POW_TWO(vars.i_cmd_int)));
-        vars.i_qd_r_ref.q = sqrtf(POW_TWO(vars.i_cmd_int) - POW_TWO(vars.i_qd_r_ref.d)) * SIGN(vars.i_cmd_int);
+    	vars_ptr->i_qd_r_ref.d = 0.25f * (ctrl_ptr->ph_adv.lam_over_dl - sqrtf(POW_TWO(ctrl_ptr->ph_adv.lam_over_dl) + 8.0f * POW_TWO(vars_ptr->i_cmd_int)));
+    	vars_ptr->i_qd_r_ref.q = sqrtf(POW_TWO(vars_ptr->i_cmd_int) - POW_TWO(vars_ptr->i_qd_r_ref.d)) * SIGN(vars_ptr->i_cmd_int);
     }
 }
 RAMFUNC_END
 
-void PHASE_ADV_CalcOptIs(QD_t* i_qd, float* i_s)
+void PHASE_ADV_CalcOptIs(MOTOR_t *motor_ptr,QD_t* i_qd, float* i_s)
 {
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+
     // This is an aproximation. Accruate calculation needs solving a 4th order polynomial.
-    float c1 = i_qd->q * (1 - ctrl.ph_adv.dl_over_lam * i_qd->d);
-    float c2 = -ctrl.ph_adv.dl_over_lam * c1;
+    float c1 = i_qd->q * (1 - ctrl_ptr->ph_adv.dl_over_lam * i_qd->d);
+    float c2 = -ctrl_ptr->ph_adv.dl_over_lam * c1;
     //float id = c1 * c2;
     *i_s = c1 * sqrtf(POW_TWO(c2) + 1.0f / POW_TWO(1.0f + POW_TWO(c2)));
 }

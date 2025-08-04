@@ -77,9 +77,9 @@ typedef struct
     ELEC_t th_r_est;
 } SIX_PULSE_INJ_t;
 
-void SIX_PULSE_INJ_Init();
-void SIX_PULSE_INJ_Reset();
-void SIX_PULSE_INJ_RunISR0();
-void SIX_PULSE_INJ_RunISR1();
+void SIX_PULSE_INJ_Init(MOTOR_t *motor_ptr);
+void SIX_PULSE_INJ_Reset(MOTOR_t *motor_ptr);
+void SIX_PULSE_INJ_RunISR0(MOTOR_t *motor_ptr);
+void SIX_PULSE_INJ_RunISR1(MOTOR_t *motor_ptr);
 
 #endif

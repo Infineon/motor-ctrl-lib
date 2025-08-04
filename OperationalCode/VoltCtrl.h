@@ -34,5 +34,5 @@
 
 #pragma once
 
-void VOLT_CTRL_Reset();
-void VOLT_CTRL_RunISR0();
+void VOLT_CTRL_Reset(MOTOR_t *motor_ptr);
+void VOLT_CTRL_RunISR0(MOTOR_t *motor_ptr);

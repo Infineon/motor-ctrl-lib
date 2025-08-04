@@ -36,15 +36,15 @@
 #include "General.h"
 #include "Biquad.h"
 
-typedef struct
-{
-    float* param;
-    float val_slow;
-    float val_moderate;
-    float val_fast;
-} TUNING_t;
+//typedef struct
+//{
+//    /*float* param;*/
+//    float val_slow;
+//    float val_moderate;
+//    float val_fast;
+//} TUNING_t;
 
-void PROFILER_SetTuningParams(SPEED_ATTRIB_t response_speed);
+void PROFILER_SetTuningParams(PARAMS_t* params_ptr,SPEED_ATTRIB_t response_speed);
 
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
 
@@ -109,11 +109,12 @@ typedef struct
 
 } PROFILER_t;
 
-extern PROFILER_t profiler;
 
-void PROFILER_Init();
-void PROFILER_Entry();
-void PROFILER_Exit();
-void PROFILER_RunISR0();
+extern PROFILER_t profiler[MOTOR_CTRL_NO_OF_MOTOR];
+
+void PROFILER_Init(MOTOR_t *motor_ptr);
+void PROFILER_Entry(MOTOR_t *motor_ptr);
+void PROFILER_Exit(MOTOR_t *motor_ptr);
+void PROFILER_RunISR0(MOTOR_t *motor_ptr);
 
 #endif

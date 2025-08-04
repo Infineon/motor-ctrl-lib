@@ -51,7 +51,14 @@ void EmptyFcn() {};
 RAMFUNC_END
 
 RAMFUNC_BEGIN
-bool AlwaysTrue() { return true; };
+void EmptyFcn_OneArgument(uint8_t  id) {};
+RAMFUNC_END
+
+RAMFUNC_BEGIN
+void EmptyFcn_PtrArgument(void *ptr) {};
+RAMFUNC_END
+RAMFUNC_BEGIN
+bool AlwaysTrue(uint8_t  id) { return true; };
 RAMFUNC_END
 
 void PI_Reset(PI_t* pi)
@@ -140,28 +147,28 @@ void ParkInit(const float angle, PARK_t* park)
 {
     int32_t sector = (int32_t)((angle * TWO_OVER_PI) + (angle >= 0.0f ? 0.0f : -1.0f));
     float th = angle - (sector * PI_OVER_TWO);
-    uint32_t index_s = (uint32_t)(th * params.sys.lut.sin.th_step_inv);
+    uint32_t index_s = (uint32_t)(th * params_lut.sin.th_step_inv);
     uint32_t index_c = (TRIG_LUT_WIDTH - 1U) - index_s;
-    float d_th = th - (index_s * params.sys.lut.sin.th_step);
+    float d_th = th - (index_s * params_lut.sin.th_step);
 
     switch (sector & 0x3)
     {
     default:
     case 0x0:	// sector 0
-        park->sine = params.sys.lut.sin.val[index_s] + params.sys.lut.sin.val[index_c] * d_th;
-        park->cosine = params.sys.lut.sin.val[index_c] - params.sys.lut.sin.val[index_s] * d_th;
+        park->sine = params_lut.sin.val[index_s] + params_lut.sin.val[index_c] * d_th;
+        park->cosine = params_lut.sin.val[index_c] - params_lut.sin.val[index_s] * d_th;
         break;
     case 0x1:	// sector 1
-        park->sine = params.sys.lut.sin.val[index_c] - params.sys.lut.sin.val[index_s] * d_th;
-        park->cosine = -params.sys.lut.sin.val[index_s] - params.sys.lut.sin.val[index_c] * d_th;
+        park->sine = params_lut.sin.val[index_c] - params_lut.sin.val[index_s] * d_th;
+        park->cosine = -params_lut.sin.val[index_s] - params_lut.sin.val[index_c] * d_th;
         break;
     case 0x2:	// sector 2
-        park->sine = -params.sys.lut.sin.val[index_s] - params.sys.lut.sin.val[index_c] * d_th;
-        park->cosine = -params.sys.lut.sin.val[index_c] + params.sys.lut.sin.val[index_s] * d_th;
+        park->sine = -params_lut.sin.val[index_s] - params_lut.sin.val[index_c] * d_th;
+        park->cosine = -params_lut.sin.val[index_c] + params_lut.sin.val[index_s] * d_th;
         break;
     case 0x3:	// sector 3
-        park->sine = -params.sys.lut.sin.val[index_c] + params.sys.lut.sin.val[index_s] * d_th;
-        park->cosine = params.sys.lut.sin.val[index_s] + params.sys.lut.sin.val[index_c] * d_th;
+        park->sine = -params_lut.sin.val[index_c] + params_lut.sin.val[index_s] * d_th;
+        park->cosine = params_lut.sin.val[index_s] + params_lut.sin.val[index_c] * d_th;
         break;
     }
 }
@@ -195,7 +202,7 @@ RAMFUNC_END
 RAMFUNC_BEGIN
 float ATan2(const float y, const float x)
 {
-    INV_TRIG_LUT_t* lut = &params.sys.lut.atan;
+    INV_TRIG_LUT_t* lut = &params_lut.atan;
     uint8_t sector = (IS_POS(y) << 1) | IS_POS(x);
     float theta;
 
@@ -223,7 +230,7 @@ RAMFUNC_END
 RAMFUNC_BEGIN
 float ASin(const float y)
 {
-    INV_TRIG_LUT_t* lut = &params.sys.lut.asin;
+    INV_TRIG_LUT_t* lut = &params_lut.asin;
 
     float theta = IS_NEG(y) ? -InvTrigLUT(-y, lut) : +InvTrigLUT(y, lut);
 
@@ -234,7 +241,7 @@ RAMFUNC_END
 RAMFUNC_BEGIN
 float ACos(const float x)
 {
-    INV_TRIG_LUT_t* lut = &params.sys.lut.asin;
+    INV_TRIG_LUT_t* lut = &params_lut.asin;
 
     float theta = IS_NEG(x) ? PI_OVER_TWO + InvTrigLUT(-x, lut) : PI_OVER_TWO - InvTrigLUT(x, lut);
 
@@ -467,3 +474,47 @@ void LinearRegressionProcessData(LIN_REG_t* lin_reg)
     lin_reg->c = (lin_reg->sigma_y - lin_reg->m * lin_reg->sigma_x) / lin_reg->cnt;
 }
 RAMFUNC_END
+// Pseudo Random Binary Sequence (PRBS) Look Up Table (LUT)
+static const uint8_t PRBS_LUT[15U][4U] =
+{
+    // Polynomial Terms,    Polynomial Order
+    {2U,  1U,  1U,  1U },   // 02U
+    {3U,  2U,  2U,  2U },   // 03U
+    {4U,  3U,  3U,  3U },   // 04U
+    {5U,  4U,  3U,  2U },   // 05U
+    {6U,  5U,  3U,  2U },   // 06U
+    {7U,  6U,  5U,  4U },   // 07U
+    {8U,  6U,  5U,  4U },   // 08U
+    {9U,  8U,  6U,  5U },   // 09U
+    {10U, 9U,  7U,  6U },   // 10U
+    {11U, 10U, 9U,  7U },   // 11U
+    {12U, 11U, 8U,  6U },   // 12U
+    {13U, 12U, 10U, 9U },   // 13U
+    {14U, 13U, 11U, 9U },   // 14U
+    {15U, 14U, 13U, 11U},   // 15U
+    {16U, 14U, 13U, 11U},   // 16U
+};
+
+void PseudoRandBinaryInit(PRBS_t* prbs, const uint8_t order)
+{
+    prbs->order = SAT(2U, 16U, order);
+    prbs->period = ((uint32_t)(1U) << prbs->order) - 1U;
+    for (uint8_t index = 0U; index < 4U; ++index)
+    {
+        prbs->term[index] = PRBS_LUT[prbs->order - 2U][index];
+        prbs->shift[index] = prbs->order - prbs->term[index];
+        prbs->mask[index] = (uint32_t)(1U) << prbs->shift[index];
+    }
+    prbs->lfsr = prbs->period; // seed value, 0b111...1
+}
+
+bool PseudoRandBinaryGen(PRBS_t* prbs)
+{
+    uint32_t msb =
+        (((prbs->lfsr) & (prbs->mask[0U])) >> (prbs->shift[0U])) ^
+        (((prbs->lfsr) & (prbs->mask[1U])) >> (prbs->shift[1U])) ^
+        (((prbs->lfsr) & (prbs->mask[2U])) >> (prbs->shift[2U])) ^
+        (((prbs->lfsr) & (prbs->mask[3U])) >> (prbs->shift[3U]));
+    (prbs->lfsr) = ((prbs->lfsr) >> 1U) | (msb << ((prbs->order) - 1U));
+    return msb;
+}

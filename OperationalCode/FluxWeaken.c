@@ -37,74 +37,81 @@
 #include "Controller.h"
 
 #if defined(CTRL_METHOD_RFO)
-void FLUX_WEAKEN_Reset()
+void FLUX_WEAKEN_Reset(MOTOR_t *motor_ptr)
 {
-    ctrl.flux_weaken.integ = 0.0f;
+	CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+	ctrl_ptr->flux_weaken.integ = 0.0f;
 }
 #endif
 
 RAMFUNC_BEGIN
-void FLUX_WEAKEN_RunISR0()
+void FLUX_WEAKEN_RunISR1(MOTOR_t *motor_ptr)
 {
-    if (params.ctrl.flux_weaken.en == En)
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+#if defined(CTRL_METHOD_RFO)
+    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
+#endif
+    if (params_ptr->ctrl.flux_weaken.en == En)
     {
 #if defined(PC_TEST)
-        vars.test[29] = vars.v_dc;
+        vars_ptr->test[29] = vars_ptr->v_dc;
 #endif
 #if defined(CTRL_METHOD_RFO)
         // Voltage limits
-        ctrl.flux_weaken.v_q_lim_sq = MAX(POW_TWO(vars.v_dc * params.ctrl.flux_weaken.vdc_coeff) - POW_TWO(vars.v_qd_r_cmd.d), 0.0f);
-        ctrl.flux_weaken.v_q_lim = sqrtf(ctrl.flux_weaken.v_q_lim_sq);
+        ctrl_ptr->flux_weaken.v_q_lim_sq = MAX(POW_TWO(vars_ptr->v_dc * params_ptr->ctrl.flux_weaken.vdc_coeff) - POW_TWO(vars_ptr->v_qd_r_cmd.d), 0.0f);
+        ctrl_ptr->flux_weaken.v_q_lim = sqrtf(ctrl_ptr->flux_weaken.v_q_lim_sq);
 
         // Integrator
-        ctrl.flux_weaken.vq_error = ctrl.flux_weaken.v_q_lim - ABS(vars.v_qd_r_cmd.q);
-        ctrl.flux_weaken.integ += ctrl.flux_weaken.vq_error * params.ctrl.flux_weaken.ki;
+        ctrl_ptr->flux_weaken.vq_error = ctrl_ptr->flux_weaken.v_q_lim - ABS(vars_ptr->v_qd_r_cmd.q);
+        ctrl_ptr->flux_weaken.integ += ctrl_ptr->flux_weaken.vq_error * params_ptr->ctrl.flux_weaken.ki;
 
         // Integrator limits
-        ctrl.flux_weaken.id_lim = sqrtf(MAX(POW_TWO(protect.motor.i2t.i_limit) - POW_TWO(vars.i_qd_r_fb.q), 0.0f));
+        ctrl_ptr->flux_weaken.id_lim = sqrtf(MAX(POW_TWO(protect_ptr->motor.i2t.i_limit) - POW_TWO(vars_ptr->i_qd_r_fb.q), 0.0f));
         const float Integ_Lim_Pos_Margin = 0.05f;
-        ctrl.flux_weaken.integ_lim.max = MIN(ctrl.flux_weaken.id_lim, Integ_Lim_Pos_Margin * params.motor.id_max) - vars.i_qd_r_ref.d;
-        ctrl.flux_weaken.integ_lim.min = MAX(-ctrl.flux_weaken.id_lim, -params.motor.id_max) - vars.i_qd_r_ref.d;
-        ctrl.flux_weaken.integ = SAT(ctrl.flux_weaken.integ_lim.min, ctrl.flux_weaken.integ_lim.max, ctrl.flux_weaken.integ);
+        ctrl_ptr->flux_weaken.integ_lim.max = MIN(ctrl_ptr->flux_weaken.id_lim, Integ_Lim_Pos_Margin * params_ptr->motor.id_max) - vars_ptr->i_qd_r_ref.d;
+        ctrl_ptr->flux_weaken.integ_lim.min = MAX(-ctrl_ptr->flux_weaken.id_lim, -params_ptr->motor.id_max) - vars_ptr->i_qd_r_ref.d;
+        ctrl_ptr->flux_weaken.integ = SAT(ctrl_ptr->flux_weaken.integ_lim.min, ctrl_ptr->flux_weaken.integ_lim.max, ctrl_ptr->flux_weaken.integ);
 
         // Field weakening current and activation indicator
-        if (ctrl.flux_weaken.integ < 0.0f)
+        if (ctrl_ptr->flux_weaken.integ < 0.0f)
         {
-            ctrl.flux_weaken.id_fw = ctrl.flux_weaken.integ;
-            ctrl.flux_weaken.activated = true;
+            ctrl_ptr->flux_weaken.id_fw = ctrl_ptr->flux_weaken.integ;
+            ctrl_ptr->flux_weaken.activated = true;
         }
         else
         {
-            ctrl.flux_weaken.id_fw = 0.0f;
-            ctrl.flux_weaken.activated = false;
+            ctrl_ptr->flux_weaken.id_fw = 0.0f;
+            ctrl_ptr->flux_weaken.activated = false;
         }
-        vars.i_qd_r_cmd.q = vars.i_qd_r_ref.q;		// Not changing speed loop's dynamics
-        vars.i_qd_r_cmd.d = vars.i_qd_r_ref.d + ctrl.flux_weaken.id_fw;
+        vars_ptr->i_qd_r_cmd.q = vars_ptr->i_qd_r_ref.q;		// Not changing speed loop's dynamics
+        vars_ptr->i_qd_r_cmd.d = vars_ptr->i_qd_r_ref.d + ctrl_ptr->flux_weaken.id_fw;
 
 #elif defined(CTRL_METHOD_SFO)
         // Voltage limits
-        ctrl.flux_weaken.v_q_lim_sq = MAX(POW_TWO(vars.v_dc * params.ctrl.flux_weaken.vdc_coeff) - POW_TWO(vars.v_qd_s_cmd.d), 0.0f);
-        ctrl.flux_weaken.v_q_lim = sqrtf(ctrl.flux_weaken.v_q_lim_sq);
+        ctrl_ptr->flux_weaken.v_q_lim_sq = MAX(POW_TWO(vars_ptr->v_dc * params_ptr->ctrl.flux_weaken.vdc_coeff) - POW_TWO(vars_ptr->v_qd_s_cmd.d), 0.0f);
+        ctrl_ptr->flux_weaken.v_q_lim = sqrtf(ctrl_ptr->flux_weaken.v_q_lim_sq);
 
-        if (vars.w_final_filt_abs.elec > params.ctrl.flux_weaken.w_min.elec)
+        if (vars_ptr->w_final_filt_abs.elec > params_ptr->ctrl.flux_weaken.w_min.elec)
         {
-            ctrl.flux_weaken.la_cmd_lim = (ctrl.flux_weaken.v_q_lim * SIGN(vars.v_qd_s_cmd.q) - params.motor.r * vars.i_qd_s_fb.q) / vars.w_final_filt.elec;
+            ctrl_ptr->flux_weaken.la_cmd_lim = (ctrl_ptr->flux_weaken.v_q_lim * SIGN(vars_ptr->v_qd_s_cmd.q) - params_ptr->motor.r * vars_ptr->i_qd_s_fb.q) / vars_ptr->w_final_filt.elec;
         }
         else
         {
-            ctrl.flux_weaken.la_cmd_lim = vars.la_cmd_mtpa;
+            ctrl_ptr->flux_weaken.la_cmd_lim = vars_ptr->la_cmd_mtpa;
         }
 
         // Field weakening flux command and activation indicator
-        if (ctrl.flux_weaken.la_cmd_lim < vars.la_cmd_mtpa)
+        if (ctrl_ptr->flux_weaken.la_cmd_lim < vars_ptr->la_cmd_mtpa)
         {
-            vars.la_cmd_final = ctrl.flux_weaken.la_cmd_lim;
-            ctrl.flux_weaken.activated = true;
+            vars_ptr->la_cmd_final = ctrl_ptr->flux_weaken.la_cmd_lim;
+            ctrl_ptr->flux_weaken.activated = true;
         }
         else
         {
-            vars.la_cmd_final = vars.la_cmd_mtpa;
-            ctrl.flux_weaken.activated = false;
+            vars_ptr->la_cmd_final = vars_ptr->la_cmd_mtpa;
+            ctrl_ptr->flux_weaken.activated = false;
         }
 
 #endif
@@ -112,11 +119,11 @@ void FLUX_WEAKEN_RunISR0()
     else // Disabled
     {
 #if defined(CTRL_METHOD_RFO)
-        vars.i_qd_r_cmd.q = vars.i_qd_r_ref.q;
-        vars.i_qd_r_cmd.d = vars.i_qd_r_ref.d;
+        vars_ptr->i_qd_r_cmd.q = vars_ptr->i_qd_r_ref.q;
+        vars_ptr->i_qd_r_cmd.d = vars_ptr->i_qd_r_ref.d;
 
 #elif defined(CTRL_METHOD_SFO)
-        vars.la_cmd_final = vars.la_cmd_mtpa;
+        vars_ptr->la_cmd_final = vars_ptr->la_cmd_mtpa;
 #endif
     }
 

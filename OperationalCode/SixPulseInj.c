@@ -49,95 +49,102 @@ int8_t Pulse_Table[TABLE_DEPTH][SIX_PULSE] = \
 {   {   0x1,    0x4,    0x2,    0x5,    0x3,    0x6},
     {   0b001,  0b110,  0b011,  0b100,  0b010,  0b101   }   };
 
-void SIX_PULSE_INJ_Init()
+void SIX_PULSE_INJ_Init(MOTOR_t *motor_ptr)
 {
-    StopWatchInit(&ctrl.six_pulse_inj.timer_on, params.ctrl.six_pulse_inj.t_on, params.sys.samp.ts0);
-    StopWatchInit(&ctrl.six_pulse_inj.timer_off, params.ctrl.six_pulse_inj.t_off, params.sys.samp.ts0);
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
 
-    float d_vdc = SAT(0.0f, 1.0f, params.ctrl.six_pulse_inj.v_pulse / params.sys.vdc_nom);
+    StopWatchInit(&ctrl_ptr->six_pulse_inj.timer_on, params_ptr->ctrl.six_pulse_inj.t_on, params_ptr->sys.samp.ts0);
+    StopWatchInit(&ctrl_ptr->six_pulse_inj.timer_off, params_ptr->ctrl.six_pulse_inj.t_off, params_ptr->sys.samp.ts0);
+
+    float d_vdc = SAT(0.0f, 1.0f, params_ptr->ctrl.six_pulse_inj.v_pulse / params_ptr->sys.vdc_nom);
     float d_0 = 1.0f - d_vdc;
-    ctrl.six_pulse_inj.d_pos = d_vdc + 0.5f * d_0;
-    ctrl.six_pulse_inj.d_neg = 0.5f * d_0;
+    ctrl_ptr->six_pulse_inj.d_pos = d_vdc + 0.5f * d_0;
+    ctrl_ptr->six_pulse_inj.d_neg = 0.5f * d_0;
 
-    SIX_PULSE_INJ_Reset();
+    SIX_PULSE_INJ_Reset(motor_ptr);
 }
 
-void SIX_PULSE_INJ_Reset()
+void SIX_PULSE_INJ_Reset(MOTOR_t *motor_ptr)
 {
-    ctrl.six_pulse_inj.state = Not_Started;
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+    ctrl_ptr->six_pulse_inj.state = Not_Started;
 }
 
-static inline void ResetLabels()
+static inline void ResetLabels(CTRL_t* ctrl_ptr)
 {
     for (int8_t index = 0; index < SIX_PULSE; ++index)
     {
         int8_t wvu = Pulse_Table[LABEL][index];
-        ctrl.six_pulse_inj.i_peak.label[index] = wvu;
-        ctrl.six_pulse_inj.k.label[index] = wvu;
+        ctrl_ptr->six_pulse_inj.i_peak.label[index] = wvu;
+        ctrl_ptr->six_pulse_inj.k.label[index] = wvu;
     }
 }
 
 RAMFUNC_BEGIN
-void SIX_PULSE_INJ_RunISR0()
+void SIX_PULSE_INJ_RunISR0(MOTOR_t *motor_ptr)
 {
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
     int8_t wvu;
-    switch (ctrl.six_pulse_inj.state)
+    switch (ctrl_ptr->six_pulse_inj.state)
     {
     case Not_Started:
-        StopWatchReset(&ctrl.six_pulse_inj.timer_on);
-        ResetLabels();
-        ctrl.six_pulse_inj.th_r_est.elec = 0.0f;
-        ctrl.six_pulse_inj.pulse_num = 0;
-        wvu = Pulse_Table[WVU][ctrl.six_pulse_inj.pulse_num];
-        vars.d_uvw_cmd.u = BIT_TO_FLOAT(wvu, 0b001, ctrl.six_pulse_inj.d_pos, ctrl.six_pulse_inj.d_neg);
-        vars.d_uvw_cmd.v = BIT_TO_FLOAT(wvu, 0b010, ctrl.six_pulse_inj.d_pos, ctrl.six_pulse_inj.d_neg);
-        vars.d_uvw_cmd.w = BIT_TO_FLOAT(wvu, 0b100, ctrl.six_pulse_inj.d_pos, ctrl.six_pulse_inj.d_neg);
-        ctrl.six_pulse_inj.state = In_Progress_On_Pulse;
+        StopWatchReset(&ctrl_ptr->six_pulse_inj.timer_on);
+        ResetLabels(ctrl_ptr);
+        ctrl_ptr->six_pulse_inj.th_r_est.elec = 0.0f;
+        ctrl_ptr->six_pulse_inj.pulse_num = 0;
+        wvu = Pulse_Table[WVU][ctrl_ptr->six_pulse_inj.pulse_num];
+        vars_ptr->d_uvw_cmd.u = BIT_TO_FLOAT(wvu, 0b001, ctrl_ptr->six_pulse_inj.d_pos, ctrl_ptr->six_pulse_inj.d_neg);
+        vars_ptr->d_uvw_cmd.v = BIT_TO_FLOAT(wvu, 0b010, ctrl_ptr->six_pulse_inj.d_pos, ctrl_ptr->six_pulse_inj.d_neg);
+        vars_ptr->d_uvw_cmd.w = BIT_TO_FLOAT(wvu, 0b100, ctrl_ptr->six_pulse_inj.d_pos, ctrl_ptr->six_pulse_inj.d_neg);
+        ctrl_ptr->six_pulse_inj.state = In_Progress_On_Pulse;
         break;
     case In_Progress_On_Pulse:
-        StopWatchRun(&ctrl.six_pulse_inj.timer_on);
-        if (StopWatchIsDone(&ctrl.six_pulse_inj.timer_on))
+        StopWatchRun(&ctrl_ptr->six_pulse_inj.timer_on);
+        if (StopWatchIsDone(&ctrl_ptr->six_pulse_inj.timer_on))
         {
-            StopWatchReset(&ctrl.six_pulse_inj.timer_off);
-            ctrl.six_pulse_inj.k_num = 0.0f;
-            ctrl.six_pulse_inj.k_den = 0.0f;
-            vars.d_uvw_cmd = UVW_Zero;
-            ctrl.six_pulse_inj.state = In_Progress_Off_Pulse;
-            wvu = Pulse_Table[WVU][ctrl.six_pulse_inj.pulse_num];
-            ctrl.six_pulse_inj.i_uvw_sign.u = BIT_TO_FLOAT(wvu, 0b001, +1.0f, -1.0f);
-            ctrl.six_pulse_inj.i_uvw_sign.v = BIT_TO_FLOAT(wvu, 0b010, +1.0f, -1.0f);
-            ctrl.six_pulse_inj.i_uvw_sign.w = BIT_TO_FLOAT(wvu, 0b100, +1.0f, -1.0f);
+            StopWatchReset(&ctrl_ptr->six_pulse_inj.timer_off);
+            ctrl_ptr->six_pulse_inj.k_num = 0.0f;
+            ctrl_ptr->six_pulse_inj.k_den = 0.0f;
+            vars_ptr->d_uvw_cmd = UVW_Zero;
+            ctrl_ptr->six_pulse_inj.state = In_Progress_Off_Pulse;
+            wvu = Pulse_Table[WVU][ctrl_ptr->six_pulse_inj.pulse_num];
+            ctrl_ptr->six_pulse_inj.i_uvw_sign.u = BIT_TO_FLOAT(wvu, 0b001, +1.0f, -1.0f);
+            ctrl_ptr->six_pulse_inj.i_uvw_sign.v = BIT_TO_FLOAT(wvu, 0b010, +1.0f, -1.0f);
+            ctrl_ptr->six_pulse_inj.i_uvw_sign.w = BIT_TO_FLOAT(wvu, 0b100, +1.0f, -1.0f);
         }
         break;
     case In_Progress_Off_Pulse:
-        ctrl.six_pulse_inj.i_fb = 0.5f * (vars.i_uvw_fb.u * ctrl.six_pulse_inj.i_uvw_sign.u + vars.i_uvw_fb.v * ctrl.six_pulse_inj.i_uvw_sign.v + vars.i_uvw_fb.w * ctrl.six_pulse_inj.i_uvw_sign.w);
-        if (ctrl.six_pulse_inj.timer_off.time_ticks == 0U) // first cycle, sample peak current
+        ctrl_ptr->six_pulse_inj.i_fb = 0.5f * (vars_ptr->i_uvw_fb.u * ctrl_ptr->six_pulse_inj.i_uvw_sign.u + vars_ptr->i_uvw_fb.v * ctrl_ptr->six_pulse_inj.i_uvw_sign.v + vars_ptr->i_uvw_fb.w * ctrl_ptr->six_pulse_inj.i_uvw_sign.w);
+        if (ctrl_ptr->six_pulse_inj.timer_off.time_ticks == 0U) // first cycle, sample peak current
         {
-            ctrl.six_pulse_inj.i_peak.value[ctrl.six_pulse_inj.pulse_num] = ctrl.six_pulse_inj.i_fb;
+            ctrl_ptr->six_pulse_inj.i_peak.value[ctrl_ptr->six_pulse_inj.pulse_num] = ctrl_ptr->six_pulse_inj.i_fb;
         }
         else // next cycles, calculate exponential decay (least squares method)
         {
-            ctrl.six_pulse_inj.k_num += POW_TWO(ctrl.six_pulse_inj.i_fb_prev);
-            ctrl.six_pulse_inj.k_den += ctrl.six_pulse_inj.i_fb * ctrl.six_pulse_inj.i_fb_prev;
+            ctrl_ptr->six_pulse_inj.k_num += POW_TWO(ctrl_ptr->six_pulse_inj.i_fb_prev);
+            ctrl_ptr->six_pulse_inj.k_den += ctrl_ptr->six_pulse_inj.i_fb * ctrl_ptr->six_pulse_inj.i_fb_prev;
         }
-        ctrl.six_pulse_inj.i_fb_prev = ctrl.six_pulse_inj.i_fb;
-        StopWatchRun(&ctrl.six_pulse_inj.timer_off);
-        if (StopWatchIsDone(&ctrl.six_pulse_inj.timer_off))
+        ctrl_ptr->six_pulse_inj.i_fb_prev = ctrl_ptr->six_pulse_inj.i_fb;
+        StopWatchRun(&ctrl_ptr->six_pulse_inj.timer_off);
+        if (StopWatchIsDone(&ctrl_ptr->six_pulse_inj.timer_off))
         {
-            ctrl.six_pulse_inj.k.value[ctrl.six_pulse_inj.pulse_num] = ctrl.six_pulse_inj.k_num / ctrl.six_pulse_inj.k_den;
-            if (ctrl.six_pulse_inj.pulse_num < (SIX_PULSE - 1))
+            ctrl_ptr->six_pulse_inj.k.value[ctrl_ptr->six_pulse_inj.pulse_num] = ctrl_ptr->six_pulse_inj.k_num / ctrl_ptr->six_pulse_inj.k_den;
+            if (ctrl_ptr->six_pulse_inj.pulse_num < (SIX_PULSE - 1))
             {
-                StopWatchReset(&ctrl.six_pulse_inj.timer_on);
-                ++ctrl.six_pulse_inj.pulse_num; // S061987
-                wvu = Pulse_Table[WVU][ctrl.six_pulse_inj.pulse_num];
-                vars.d_uvw_cmd.u = BIT_TO_FLOAT(wvu, 0b001, ctrl.six_pulse_inj.d_pos, ctrl.six_pulse_inj.d_neg);
-                vars.d_uvw_cmd.v = BIT_TO_FLOAT(wvu, 0b010, ctrl.six_pulse_inj.d_pos, ctrl.six_pulse_inj.d_neg);
-                vars.d_uvw_cmd.w = BIT_TO_FLOAT(wvu, 0b100, ctrl.six_pulse_inj.d_pos, ctrl.six_pulse_inj.d_neg);
-                ctrl.six_pulse_inj.state = In_Progress_On_Pulse;
+                StopWatchReset(&ctrl_ptr->six_pulse_inj.timer_on);
+                ++ctrl_ptr->six_pulse_inj.pulse_num; // S061987
+                wvu = Pulse_Table[WVU][ctrl_ptr->six_pulse_inj.pulse_num];
+                vars_ptr->d_uvw_cmd.u = BIT_TO_FLOAT(wvu, 0b001, ctrl_ptr->six_pulse_inj.d_pos, ctrl_ptr->six_pulse_inj.d_neg);
+                vars_ptr->d_uvw_cmd.v = BIT_TO_FLOAT(wvu, 0b010, ctrl_ptr->six_pulse_inj.d_pos, ctrl_ptr->six_pulse_inj.d_neg);
+                vars_ptr->d_uvw_cmd.w = BIT_TO_FLOAT(wvu, 0b100, ctrl_ptr->six_pulse_inj.d_pos, ctrl_ptr->six_pulse_inj.d_neg);
+                ctrl_ptr->six_pulse_inj.state = In_Progress_On_Pulse;
             }
             else
             {
-                ctrl.six_pulse_inj.state = Processing_Results;
+                ctrl_ptr->six_pulse_inj.state = Processing_Results;
             }
         }
         break;
@@ -189,49 +196,53 @@ static void ExtractTwoLabels(SIX_PULSE_INJ_DATA_t* data, int8_t results[TWO_PULS
     }
 }
 
-static inline void UnWrapLabels(int8_t labels[TWO_PULSE])
+static inline void UnWrapLabels(CTRL_t* ctrl_ptr,int8_t labels[TWO_PULSE])
 {
+
     if ((labels[0] - labels[1]) > (SIX_PULSE >> 1))
     {
-        ctrl.six_pulse_inj.labels_unwrapped[0] = labels[0] - 1;
-        ctrl.six_pulse_inj.labels_unwrapped[1] = labels[1] + SIX_PULSE - 1;
+        ctrl_ptr->six_pulse_inj.labels_unwrapped[0] = labels[0] - 1;
+        ctrl_ptr->six_pulse_inj.labels_unwrapped[1] = labels[1] + SIX_PULSE - 1;
     }
     else if ((labels[1] - labels[0]) > (SIX_PULSE >> 1))
     {
-        ctrl.six_pulse_inj.labels_unwrapped[0] = labels[0] + SIX_PULSE - 1;
-        ctrl.six_pulse_inj.labels_unwrapped[1] = labels[1] - 1;
+        ctrl_ptr->six_pulse_inj.labels_unwrapped[0] = labels[0] + SIX_PULSE - 1;
+        ctrl_ptr->six_pulse_inj.labels_unwrapped[1] = labels[1] - 1;
     }
     else
     {
-        ctrl.six_pulse_inj.labels_unwrapped[0] = labels[0] - 1;
-        ctrl.six_pulse_inj.labels_unwrapped[1] = labels[1] - 1;
+        ctrl_ptr->six_pulse_inj.labels_unwrapped[0] = labels[0] - 1;
+        ctrl_ptr->six_pulse_inj.labels_unwrapped[1] = labels[1] - 1;
     }
 }
 
-static inline void VerifyLabels()
+static inline void VerifyLabels(CTRL_t* ctrl_ptr)
 {
-    if ((ctrl.six_pulse_inj.labels_i_peak[0] == ctrl.six_pulse_inj.labels_k[0]) && (ctrl.six_pulse_inj.labels_i_peak[1] == ctrl.six_pulse_inj.labels_k[1]))
+
+    if ((ctrl_ptr->six_pulse_inj.labels_i_peak[0] == ctrl_ptr->six_pulse_inj.labels_k[0]) && (ctrl_ptr->six_pulse_inj.labels_i_peak[1] == ctrl_ptr->six_pulse_inj.labels_k[1]))
     {
-        ctrl.six_pulse_inj.state = Finished_Success;
+        ctrl_ptr->six_pulse_inj.state = Finished_Success;
     }
     else
     {
-        ctrl.six_pulse_inj.state = Finished_Ambiguous;
+        ctrl_ptr->six_pulse_inj.state = Finished_Ambiguous;
     }
 }
 
 
-void SIX_PULSE_INJ_RunISR1()
+void SIX_PULSE_INJ_RunISR1(MOTOR_t *motor_ptr)
 {
-    switch (ctrl.six_pulse_inj.state)
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+
+    switch (ctrl_ptr->six_pulse_inj.state)
     {
     case Processing_Results:
-        ExtractTwoLabels(&ctrl.six_pulse_inj.i_peak, ctrl.six_pulse_inj.labels_i_peak);
-        ExtractTwoLabels(&ctrl.six_pulse_inj.k, ctrl.six_pulse_inj.labels_k);
-        VerifyLabels();
-        UnWrapLabels(ctrl.six_pulse_inj.labels_k);
+        ExtractTwoLabels(&ctrl_ptr->six_pulse_inj.i_peak, ctrl_ptr->six_pulse_inj.labels_i_peak);
+        ExtractTwoLabels(&ctrl_ptr->six_pulse_inj.k, ctrl_ptr->six_pulse_inj.labels_k);
+        VerifyLabels(ctrl_ptr);
+        UnWrapLabels(ctrl_ptr,ctrl_ptr->six_pulse_inj.labels_k);
         // th_r_est = PI/2 + PI/3 * ( label[0]*3/4 + label[1]*1/4 ):
-        ctrl.six_pulse_inj.th_r_est.elec = Wrap2Pi(PI_OVER_TWO + PI_OVER_FOUR * ctrl.six_pulse_inj.labels_unwrapped[0] + PI_OVER_TWELVE * ctrl.six_pulse_inj.labels_unwrapped[1]);
+        ctrl_ptr->six_pulse_inj.th_r_est.elec = Wrap2Pi(PI_OVER_TWO + PI_OVER_FOUR * ctrl_ptr->six_pulse_inj.labels_unwrapped[0] + PI_OVER_TWELVE * ctrl_ptr->six_pulse_inj.labels_unwrapped[1]);
         break;
     case Not_Started:
     case In_Progress_On_Pulse:

@@ -66,27 +66,34 @@ float Phase_V_Table[HALL_SIGNAL_PERMUTATIONS] = {  HIZ,    HIZ,    1.0f,   1.0f,
 float Phase_W_Table[HALL_SIGNAL_PERMUTATIONS] = {  HIZ,    0.0f,   HIZ,    0.0f,   1.0f,   HIZ,    1.0f,   HIZ };
 
 RAMFUNC_BEGIN
-void BLOCK_COMM_RunCurrSampISR0()
+void BLOCK_COMM_RunCurrSampISR0(MOTOR_t *motor_ptr)
 {
-    vars.i_s_fb =
-        ((ctrl.block_comm.high_z_state.u) ? 0.0f : (ctrl.block_comm.i_uvw_coeff.u - 0.5f) * vars.i_uvw_fb.u) +
-        ((ctrl.block_comm.high_z_state.v) ? 0.0f : (ctrl.block_comm.i_uvw_coeff.v - 0.5f) * vars.i_uvw_fb.v) +
-        ((ctrl.block_comm.high_z_state.w) ? 0.0f : (ctrl.block_comm.i_uvw_coeff.w - 0.5f) * vars.i_uvw_fb.w);
+	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
 
-    vars.i_s_fb *= SQRT_TWO;
+    vars_ptr->i_s_fb =
+        ((ctrl_ptr->block_comm.high_z_state.u) ? 0.0f : (ctrl_ptr->block_comm.i_uvw_coeff.u - 0.5f) * vars_ptr->i_uvw_fb.u) +
+        ((ctrl_ptr->block_comm.high_z_state.v) ? 0.0f : (ctrl_ptr->block_comm.i_uvw_coeff.v - 0.5f) * vars_ptr->i_uvw_fb.v) +
+        ((ctrl_ptr->block_comm.high_z_state.w) ? 0.0f : (ctrl_ptr->block_comm.i_uvw_coeff.w - 0.5f) * vars_ptr->i_uvw_fb.w);
+
+    vars_ptr->i_s_fb *= SQRT_TWO;
 }
 RAMFUNC_END
 
-void BLOCK_COMM_Init()
+void BLOCK_COMM_Init(MOTOR_t *motor_ptr)
 {
-    ctrl.block_comm.hall_equiv.uvw = 0b100;
-    ctrl.block_comm.high_z_state.uvw = 0b000;
-    ctrl.block_comm.high_z_state_prev.uvw = 0b000;
+	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-    if (params.sys.analog.shunt.type == Single_Shunt)
+    ctrl_ptr->block_comm.hall_equiv.uvw = 0b100;
+    ctrl_ptr->block_comm.high_z_state.uvw = 0b000;
+    ctrl_ptr->block_comm.high_z_state_prev.uvw = 0b000;
+
+    if (params_ptr->sys.analog.shunt.type == Single_Shunt)
     {
-        vars.d_samp[0] = 0.0f;
-        vars.d_samp[1] = 0.0f;
+        vars_ptr->d_samp[0] = 0.0f;
+        vars_ptr->d_samp[1] = 0.0f;
     }
 }
 
@@ -112,40 +119,45 @@ static inline float CalcDutyCycle(bool high_z, bool dir, float i_coeff, float d_
 }
 
 RAMFUNC_BEGIN
-void BLOCK_COMM_RunVoltModISR0()
+void BLOCK_COMM_RunVoltModISR0(MOTOR_t *motor_ptr)
 {
-    ctrl.block_comm.hall_equiv = (params.sys.fb.hall.block_comm_offset_comp == En) ? BLOCK_COMM_EquivHallSignal(hall.track_loop.th_r_est) : hall.signal;
+	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+	HALL_SENS_t* hall_ptr = motor_ptr->hall_ptr;
 
-    ctrl.block_comm.i_uvw_coeff.u = Phase_U_Table[ctrl.block_comm.hall_equiv.uvw];
-    ctrl.block_comm.i_uvw_coeff.v = Phase_V_Table[ctrl.block_comm.hall_equiv.uvw];
-    ctrl.block_comm.i_uvw_coeff.w = Phase_W_Table[ctrl.block_comm.hall_equiv.uvw];
+    ctrl_ptr->block_comm.hall_equiv = (params_ptr->sys.fb.hall.block_comm_offset_comp == En) ? BLOCK_COMM_EquivHallSignal(hall_ptr->track_loop.th_r_est) : hall_ptr->signal;
 
-    ctrl.block_comm.high_z_state_prev = ctrl.block_comm.high_z_state;
-    ctrl.block_comm.high_z_state.u = IS_HIGHZ(ctrl.block_comm.i_uvw_coeff.u);
-    ctrl.block_comm.high_z_state.v = IS_HIGHZ(ctrl.block_comm.i_uvw_coeff.v);
-    ctrl.block_comm.high_z_state.w = IS_HIGHZ(ctrl.block_comm.i_uvw_coeff.w);
+    ctrl_ptr->block_comm.i_uvw_coeff.u = Phase_U_Table[ctrl_ptr->block_comm.hall_equiv.uvw];
+    ctrl_ptr->block_comm.i_uvw_coeff.v = Phase_V_Table[ctrl_ptr->block_comm.hall_equiv.uvw];
+    ctrl_ptr->block_comm.i_uvw_coeff.w = Phase_W_Table[ctrl_ptr->block_comm.hall_equiv.uvw];
 
-    ctrl.block_comm.v_s_mag = ABS(vars.v_s_cmd.rad);
-    ctrl.block_comm.v_s_sign = IS_POS(vars.v_s_cmd.rad);
-    ctrl.block_comm.d_cmd = SAT(0.0f, 1.0f, 2.0f * ctrl.block_comm.v_s_mag / vars.v_dc);
+    ctrl_ptr->block_comm.high_z_state_prev = ctrl_ptr->block_comm.high_z_state;
+    ctrl_ptr->block_comm.high_z_state.u = IS_HIGHZ(ctrl_ptr->block_comm.i_uvw_coeff.u);
+    ctrl_ptr->block_comm.high_z_state.v = IS_HIGHZ(ctrl_ptr->block_comm.i_uvw_coeff.v);
+    ctrl_ptr->block_comm.high_z_state.w = IS_HIGHZ(ctrl_ptr->block_comm.i_uvw_coeff.w);
+
+    ctrl_ptr->block_comm.v_s_mag = ABS(vars_ptr->v_s_cmd.rad);
+    ctrl_ptr->block_comm.v_s_sign = IS_POS(vars_ptr->v_s_cmd.rad);
+    ctrl_ptr->block_comm.d_cmd = SAT(0.0f, 1.0f, 2.0f * ctrl_ptr->block_comm.v_s_mag / vars_ptr->v_dc);
 #if defined(PC_TEST)
-    vars.test[43] = (float)(ctrl.block_comm.hall_equiv.u);
-    vars.test[44] = (float)(ctrl.block_comm.hall_equiv.v);
-    vars.test[45] = (float)(ctrl.block_comm.hall_equiv.w);
+    vars_ptr->test[43] = (float)(ctrl_ptr->block_comm.hall_equiv.u);
+    vars_ptr->test[44] = (float)(ctrl_ptr->block_comm.hall_equiv.v);
+    vars_ptr->test[45] = (float)(ctrl_ptr->block_comm.hall_equiv.w);
 #endif
 
-    vars.d_uvw_cmd.u = CalcDutyCycle(ctrl.block_comm.high_z_state.u, ctrl.block_comm.v_s_sign, ctrl.block_comm.i_uvw_coeff.u, ctrl.block_comm.d_cmd);
-    vars.d_uvw_cmd.v = CalcDutyCycle(ctrl.block_comm.high_z_state.v, ctrl.block_comm.v_s_sign, ctrl.block_comm.i_uvw_coeff.v, ctrl.block_comm.d_cmd);
-    vars.d_uvw_cmd.w = CalcDutyCycle(ctrl.block_comm.high_z_state.w, ctrl.block_comm.v_s_sign, ctrl.block_comm.i_uvw_coeff.w, ctrl.block_comm.d_cmd);
+    vars_ptr->d_uvw_cmd.u = CalcDutyCycle(ctrl_ptr->block_comm.high_z_state.u, ctrl_ptr->block_comm.v_s_sign, ctrl_ptr->block_comm.i_uvw_coeff.u, ctrl_ptr->block_comm.d_cmd);
+    vars_ptr->d_uvw_cmd.v = CalcDutyCycle(ctrl_ptr->block_comm.high_z_state.v, ctrl_ptr->block_comm.v_s_sign, ctrl_ptr->block_comm.i_uvw_coeff.v, ctrl_ptr->block_comm.d_cmd);
+    vars_ptr->d_uvw_cmd.w = CalcDutyCycle(ctrl_ptr->block_comm.high_z_state.w, ctrl_ptr->block_comm.v_s_sign, ctrl_ptr->block_comm.i_uvw_coeff.w, ctrl_ptr->block_comm.d_cmd);
 
-    ctrl.block_comm.enter_high_z_flag.u = RISE_EDGE(ctrl.block_comm.high_z_state_prev.u, ctrl.block_comm.high_z_state.u) ? true : false;
-    ctrl.block_comm.exit_high_z_flag.u = FALL_EDGE(ctrl.block_comm.high_z_state_prev.u, ctrl.block_comm.high_z_state.u) ? true : false;
+    ctrl_ptr->block_comm.enter_high_z_flag.u = RISE_EDGE(ctrl_ptr->block_comm.high_z_state_prev.u, ctrl_ptr->block_comm.high_z_state.u) ? true : false;
+    ctrl_ptr->block_comm.exit_high_z_flag.u = FALL_EDGE(ctrl_ptr->block_comm.high_z_state_prev.u, ctrl_ptr->block_comm.high_z_state.u) ? true : false;
 
-    ctrl.block_comm.enter_high_z_flag.v = RISE_EDGE(ctrl.block_comm.high_z_state_prev.v, ctrl.block_comm.high_z_state.v) ? true : false;
-    ctrl.block_comm.exit_high_z_flag.v = FALL_EDGE(ctrl.block_comm.high_z_state_prev.v, ctrl.block_comm.high_z_state.v) ? true : false;
+    ctrl_ptr->block_comm.enter_high_z_flag.v = RISE_EDGE(ctrl_ptr->block_comm.high_z_state_prev.v, ctrl_ptr->block_comm.high_z_state.v) ? true : false;
+    ctrl_ptr->block_comm.exit_high_z_flag.v = FALL_EDGE(ctrl_ptr->block_comm.high_z_state_prev.v, ctrl_ptr->block_comm.high_z_state.v) ? true : false;
 
-    ctrl.block_comm.enter_high_z_flag.w = RISE_EDGE(ctrl.block_comm.high_z_state_prev.w, ctrl.block_comm.high_z_state.w) ? true : false;
-    ctrl.block_comm.exit_high_z_flag.w = FALL_EDGE(ctrl.block_comm.high_z_state_prev.w, ctrl.block_comm.high_z_state.w) ? true : false;
+    ctrl_ptr->block_comm.enter_high_z_flag.w = RISE_EDGE(ctrl_ptr->block_comm.high_z_state_prev.w, ctrl_ptr->block_comm.high_z_state.w) ? true : false;
+    ctrl_ptr->block_comm.exit_high_z_flag.w = FALL_EDGE(ctrl_ptr->block_comm.high_z_state_prev.w, ctrl_ptr->block_comm.high_z_state.w) ? true : false;
 }
 RAMFUNC_END
 

@@ -54,9 +54,9 @@ typedef struct
 } FLUX_WEAKEN_t;
 
 #if defined(CTRL_METHOD_RFO)
-void FLUX_WEAKEN_Reset();
+void FLUX_WEAKEN_Reset(MOTOR_t *motor_ptr);
 #endif
 
-void FLUX_WEAKEN_RunISR0();
+void FLUX_WEAKEN_RunISR1(MOTOR_t *motor_ptr);
 
 #endif

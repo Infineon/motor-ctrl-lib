@@ -33,6 +33,7 @@
 
 #pragma once
 #include "General.h"
+#include "Controller.h"
 
 // HW ---->		Fault Detection			----> SW
 //											  |
@@ -146,16 +147,15 @@ typedef struct
     DRIVE_PROTECT_t drive;
 } PROTECT_t;
 
+extern FAULTS_t faults[MOTOR_CTRL_NO_OF_MOTOR];
+extern PROTECT_t protect[MOTOR_CTRL_NO_OF_MOTOR];
 
-extern PROTECT_t protect;
-extern FAULTS_t faults;
-
-void FAULT_PROTECT_Init();
-void FAULT_PROTECT_Reset();
-void FAULT_PROTECT_RunISR0();
-void FAULT_PROTECT_RunISR1();
-void FAULT_PROTECT_ClearFaults();
+void FAULT_PROTECT_Init(MOTOR_t *motor_ptr);
+void FAULT_PROTECT_Reset(MOTOR_t *motor_ptr);
+void FAULT_PROTECT_RunISR0(MOTOR_t *motor_ptr);
+void FAULT_PROTECT_RunISR1(MOTOR_t *motor_ptr);
+void FAULT_PROTECT_ClearFaults(MOTOR_t *motor_ptr);
 
 #if defined(CTRL_METHOD_SFO)
-void FAULT_PROTECT_RunTrqLimitCtrlISR0();
+void FAULT_PROTECT_RunTrqLimitCtrlISR1(MOTOR_t *motor_ptr);
 #endif

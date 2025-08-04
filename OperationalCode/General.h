@@ -117,6 +117,7 @@
 #define RADSEC_TO_TAU(x)	(1.0f/(x))
 #define PERIOD_TO_RADSEC(x)	(TWO_PI/(x))
 #define RADSEC_TO_PERIOD(x)	(TWO_PI/(x))
+#define DISABLE_LPF_FS(x)   HZ_TO_RADSEC((x)*ONE_OVER_TWO_PI)   // y+=(x-y)*w0*Ts; w0=fs => y=x i.e. fmax=fs/TWO_PI
 #define MECH_TO_ELEC(x,p)   ((x)*(0.5f)*(p))
 #define ELEC_TO_MECH(x,p)   ((x)*(2.0f)/(p))
 #define RPM_TO_HZ(x)		((x)*(1.0f/60.0f))
@@ -152,6 +153,9 @@
 #else
 #define STATIC_ASSERT(cond,msg) static_assert(cond,msg)
 #endif
+
+#define MOTOR_CTRL_MOTOR0_ENABLED  (1U)  /*Always true, minimum one motor should configured*/
+#define MOTOR_CTRL_MOTOR1_ENABLED  (MOTOR_CTRL_NO_OF_MOTOR >1)
 
 #pragma pack(push,4)
 
@@ -265,7 +269,7 @@ typedef enum
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_TBC)
     Hall = 1,		// hall sensor
     AqB_Enc = 2,	// A quad B encoder
-    //Direct = 3,	// TBD, direct feedback from analog or digital inputs
+    Direct = 3,	//  direct feedback from analog or digital inputs
 #endif
 } FB_MODE_t;
 
@@ -334,6 +338,15 @@ typedef struct
     float r;        // correlation
 } LIN_REG_t;
 
+typedef struct
+{   // Pseudo Random Binary Sequence (PRBS)
+    uint8_t order;      // Polynomial order (= number of bits)
+    uint8_t term[4U];   // Polynomial terms (= feedback bits)
+    uint8_t shift[4U];  // Bit shifts
+    uint32_t mask[4U];  // Bit masks
+    uint32_t period;    // PRBS period
+    uint32_t lfsr;      // Linear Feedback Shift Register (LFSR)
+} PRBS_t;
 extern UVW_t UVW_Zero;
 extern UVW_t UVW_One;
 extern UVW_t UVW_Half;
@@ -347,7 +360,10 @@ extern ELEC_t Mech_Zero;
 extern ELEC_MECH_t ElecMech_Zero;
 
 void EmptyFcn();
-bool AlwaysTrue();
+void EmptyFcn_OneArgument(uint8_t  id);
+void EmptyFcn_PtrArgument(void *ptr);
+
+bool AlwaysTrue(uint8_t  id);
 
 void PI_Reset(PI_t* pi);
 void PI_UpdateParams(PI_t* pi, const float kp, const float ki, const float output_min, const float output_max);
@@ -401,3 +417,5 @@ bool DebounceFiltIsClear(TIMER_t* timer);
 void LinearRegressionReset(LIN_REG_t* lin_reg);
 void LinearRegressionAddDataPoint(LIN_REG_t* lin_reg, const float x, const float y);
 void LinearRegressionProcessData(LIN_REG_t* lin_reg);
+void PseudoRandBinaryInit(PRBS_t* prbs, const uint8_t order);
+bool PseudoRandBinaryGen(PRBS_t* prbs);

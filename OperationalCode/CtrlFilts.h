@@ -43,8 +43,8 @@ typedef struct
 
 } CTRL_FILTS_t;
 
-void CTRL_FILTS_Init();
-void CTRL_FILTS_Reset();
-void CTRL_FILTS_RunSpeedISR0();
-void CTRL_FILTS_RunAccelISR0();
-void CTRL_FILTS_RunAllISR0();
+void CTRL_FILTS_Init(MOTOR_t *motor_ptr);
+void CTRL_FILTS_Reset(MOTOR_t *motor_ptr);
+void CTRL_FILTS_RunSpeedISR1(MOTOR_t *motor_ptr);
+void CTRL_FILTS_RunAccelISR1(MOTOR_t *motor_ptr);
+void CTRL_FILTS_RunAllISR1(MOTOR_t *motor_ptr);

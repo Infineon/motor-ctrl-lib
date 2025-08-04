@@ -36,60 +36,90 @@
 
 #if defined(CTRL_METHOD_SFO)
 
-void TRQ_Init()
+void TRQ_Init(MOTOR_t *motor_ptr)
 {
-    PI_UpdateParams(&ctrl.trq.pi, params.ctrl.trq.kp, params.ctrl.trq.ki * params.sys.samp.ts0, -params.ctrl.trq.delta_max.elec, params.ctrl.trq.delta_max.elec);
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+
+    PI_UpdateParams(&ctrl_ptr->trq.pi, params_ptr->ctrl.trq.kp, params_ptr->ctrl.trq.ki * params_ptr->sys.samp.ts0, -params_ptr->ctrl.trq.delta_max.elec, params_ptr->ctrl.trq.delta_max.elec);
 }
 
 RAMFUNC_BEGIN
-void TRQ_RunCtrlISR0()
+void TRQ_RunCtrlISR0(MOTOR_t *motor_ptr)
 {
-    vars.T_cmd_mtpv = LUT1DInterp(&params.motor.mtpv_lut, vars.la_cmd_final);
-    vars.T_cmd_final = SAT(-vars.T_cmd_mtpv, vars.T_cmd_mtpv, vars.T_cmd_int);
-    PI_Run(&ctrl.trq.pi, vars.T_cmd_final, vars.T_est, 0.0f);
-    vars.delta_cmd.elec = ctrl.trq.pi.output;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+
+
+    vars_ptr->T_cmd_mtpv = LUT1DInterp(&params_ptr->motor.mtpv_lut, vars_ptr->la_cmd_final);
+    vars_ptr->T_cmd_final = SAT(-vars_ptr->T_cmd_mtpv, vars_ptr->T_cmd_mtpv, vars_ptr->T_cmd_int);
+    PI_Run(&ctrl_ptr->trq.pi, vars_ptr->T_cmd_final, vars_ptr->T_est, 0.0f);
+    vars_ptr->delta_cmd.elec = ctrl_ptr->trq.pi.output;
 }
 RAMFUNC_END
 
-void TRQ_CalcTrq(QD_t* i_qd_r, float* trq)
+void TRQ_CalcTrq(MOTOR_t *motor_ptr, QD_t* i_qd_r, float* trq)
 {
-    *trq = 0.75f * params.motor.P * (params.motor.lam + (params.motor.ld - params.motor.lq) * i_qd_r->d) * i_qd_r->q;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+    *trq = 0.75f * params_ptr->motor.P * (params_ptr->motor.lam + (params_ptr->motor.ld - params_ptr->motor.lq) * i_qd_r->d) * i_qd_r->q;
 }
 
 #endif
 
-void TRQ_Reset()
+void TRQ_Reset(MOTOR_t *motor_ptr)
 {
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
 #if defined(CTRL_METHOD_SFO)
-    PI_Reset(&ctrl.trq.pi);
+	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+    PI_Reset(&ctrl_ptr->trq.pi);
 #endif
-    vars.T_est_filt = 0.0f;
+    vars_ptr->T_est_filt = 0.0f;
 }
 
 RAMFUNC_BEGIN
-void TRQ_RunObsISR0()
+void TRQ_RunObsISR0(MOTOR_t *motor_ptr)
 {
+#if defined(CTRL_METHOD_TBC)
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+#endif
 #if defined(CTRL_METHOD_SFO)
-    if (!sm.vars.high_freq.used) // handled by high freqeuncy injection module due to required frequency spectrum separation
-    {
-        ParkInit(vars.th_s_est.elec, &vars.park_s);
-        ParkTransform(&vars.i_ab_fb, &vars.park_s, &vars.i_qd_s_fb);
-    }
-    vars.T_est = 0.75f * params.motor.P * vars.la_qd_s_est.d * vars.i_qd_s_fb.q;
+	STATE_MACHINE_t* sm_ptr = motor_ptr->sm_ptr;
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+#endif
+#if defined(CTRL_METHOD_RFO) && !defined(MOTOR_CTRL_DISABLE_ADDON_FEATURES)
+	OBS_t* obs_ptr= motor_ptr->obs_ptr;
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+#endif
 
-#elif defined(CTRL_METHOD_RFO)
-    float trq_flux = (params.sys.fb.mode == Sensorless) ? obs.pll_r.mag : (params.motor.lam + (params.motor.ld - params.motor.lq) * vars.i_qd_r_fb.d);
-    vars.T_est = 0.75f * params.motor.P * trq_flux * vars.i_qd_r_fb.q;
+
+#if defined(CTRL_METHOD_SFO)
+    if (!sm_ptr->vars.high_freq.used) // handled by high freqeuncy injection module due to required frequency spectrum separation
+    {
+        ParkInit(vars_ptr->th_s_est.elec, &vars_ptr->park_s);
+        ParkTransform(&vars_ptr->i_ab_fb, &vars_ptr->park_s, &vars_ptr->i_qd_s_fb);
+    }
+    vars_ptr->T_est = 0.75f * params_ptr->motor.P * vars_ptr->la_qd_s_est.d * vars_ptr->i_qd_s_fb.q;
+    vars_ptr->T_est_filt += (vars_ptr->T_est - vars_ptr->T_est_filt) * (params_ptr->filt.trq_w0 * params_ptr->sys.samp.ts0);
+
+#elif defined(CTRL_METHOD_RFO) && !defined(MOTOR_CTRL_DISABLE_ADDON_FEATURES)
+    float trq_flux = (params_ptr->sys.fb.mode == Sensorless) ? obs_ptr->pll_r.mag : (params_ptr->motor.lam + (params_ptr->motor.ld - params_ptr->motor.lq) * vars_ptr->i_qd_r_fb.d);
+    vars_ptr->T_est = 0.75f * params_ptr->motor.P * trq_flux * vars_ptr->i_qd_r_fb.q;
+    vars_ptr->T_est_filt += (vars_ptr->T_est - vars_ptr->T_est_filt) * (params_ptr->filt.trq_w0 * params_ptr->sys.samp.ts0);
 
 #elif defined(CTRL_METHOD_TBC)
-    vars.T_est = ONE_OVER_SQRT_TWO * params.motor.P * params.motor.lam * vars.i_s_fb;
+    vars_ptr->T_est = ONE_OVER_SQRT_TWO * params_ptr->motor.P * params_ptr->motor.lam * vars_ptr->i_s_fb;
+    vars_ptr->T_est_filt += (vars_ptr->T_est - vars_ptr->T_est_filt) * (params_ptr->filt.trq_w0 * params_ptr->sys.samp.ts0);
 
 #endif
 
-    vars.T_est_filt += (vars.T_est - vars.T_est_filt) * (params.filt.trq_w0 * params.sys.samp.ts0);
 
 #if defined(PC_TEST)
-    vars.test[33] = vars.T_est_filt;
+    vars_ptr->test[33] = vars_ptr->T_est_filt;
 #endif
 }
 RAMFUNC_END

@@ -60,7 +60,10 @@ typedef enum
     Prof_Ld,        // Profiler, d-axis inductance estimation
     Prof_Lq,        // Profiler, q-axis inductance estimation
 #endif
-    Volt_Hz_OL,		// Open-loop Volt/Hz control
+#if defined(CTRL_METHOD_RFO)
+    Current_OL,     // Open-loop current control
+#endif
+    Volt_OL,		// Open-loop voltage control
     Speed_CL,		// Closed-loop speed control
     Fault,			// Fault
 #if defined(CTRL_METHOD_SFO)
@@ -149,12 +152,17 @@ typedef struct
     STATE_ADD_CALLBACK add_callback;
 } STATE_MACHINE_t;
 
-extern STATE_MACHINE_t sm;
+extern STATE_MACHINE_t sm[MOTOR_CTRL_NO_OF_MOTOR];
 
 void STATE_MACHINE_Init();
+#if defined(PC_TEST)
 void STATE_MACHINE_RunISR0();
 void STATE_MACHINE_RunISR1();
+#else
+void STATE_MACHINE_RunISR0(MOTOR_t* motor_ptr);
+void STATE_MACHINE_RunISR1(MOTOR_t* motor_ptr);
+#endif
+void STATE_MACHINE_ResetAllModules(MOTOR_t* motor_ptr);
 
-void STATE_MACHINE_ResetAllModules();
 
-void STATE_MACHINE_ResetVariable(void);
+void STATE_MACHINE_ResetVariable(MOTOR_t *motor_ptr);

@@ -34,47 +34,60 @@
 
 #include "Controller.h"
 
-void CTRL_FILTS_Init()
+void CTRL_FILTS_Init(MOTOR_t *motor_ptr)
 {
-    BIQUAD_PoleZeroInit(&ctrl.filt.spd_ar, params.sys.samp.fs0, 1.0f, params.filt.spd_ar_wz, params.filt.spd_ar_wp);
-    float acc_w0_squared = POW_TWO(params.filt.acc_w0);
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+
+    BIQUAD_PoleZeroInit(&ctrl_ptr->filt.spd_ar, params_ptr->sys.samp.fs1, 1.0f, params_ptr->filt.spd_ar_wz, params_ptr->filt.spd_ar_wp);
+    float acc_w0_squared = POW_TWO(params_ptr->filt.acc_w0);
     // H(s)=(w0^2*s)/(s^2+w0*s+w0^2): Q=1; BW=w0/Q=w0; s->0: H(s)=s
-    RESONANT_UpdateParams(&ctrl.filt.acc, acc_w0_squared, params.filt.acc_w0, acc_w0_squared, params.sys.samp.ts0);
+    RESONANT_UpdateParams(&ctrl_ptr->filt.acc, acc_w0_squared, params_ptr->filt.acc_w0, acc_w0_squared, params_ptr->sys.samp.ts1);
 }
 
-void CTRL_FILTS_Reset()
+void CTRL_FILTS_Reset(MOTOR_t *motor_ptr)
 {
-    BIQUAD_Reset(&ctrl.filt.spd_ar, 0.0f);
-    RESONANT_Reset(&ctrl.filt.acc);
-    vars.w_final_filt.elec = 0.0f;
-    vars.w_final_filt_abs.elec = 0.0f;
-    vars.acc_cmd_int.elec = 0.0f;
+    CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
+    BIQUAD_Reset(&ctrl_ptr->filt.spd_ar, 0.0f);
+    RESONANT_Reset(&ctrl_ptr->filt.acc);
+    vars_ptr->w_final_filt.elec = 0.0f;
+    vars_ptr->w_final_filt_abs.elec = 0.0f;
+    vars_ptr->acc_cmd_int.elec = 0.0f;
 }
 
 RAMFUNC_BEGIN
-void CTRL_FILTS_RunSpeedISR0()
+void CTRL_FILTS_RunSpeedISR1(MOTOR_t *motor_ptr)
 {
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
     // Speed anti-resonant filter
-    vars.w_final_filt.elec = (params.filt.spd_ar_en == En) ? BIQUAD_Run(&ctrl.filt.spd_ar, vars.w_final.elec) : vars.w_final.elec;
-    vars.w_final_filt_abs.elec = ABS(vars.w_final_filt.elec);
+	vars_ptr->w_final_filt.elec = (params_ptr->filt.spd_ar_en == En) ? BIQUAD_Run(&ctrl_ptr->filt.spd_ar, vars_ptr->w_final.elec) : vars_ptr->w_final.elec;
+	vars_ptr->w_final_filt_abs.elec = ABS(vars_ptr->w_final_filt.elec);
 }
 RAMFUNC_END
 
 RAMFUNC_BEGIN
-void CTRL_FILTS_RunAccelISR0()
+void CTRL_FILTS_RunAccelISR1(MOTOR_t *motor_ptr)
 {
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr  = motor_ptr->ctrl_ptr;
+
     // Acceleration estimator filter
-    vars.acc_cmd_int.elec = RESONANT_Run(&ctrl.filt.acc, vars.w_cmd_int.elec);
+	vars_ptr->acc_cmd_int.elec = RESONANT_Run(&ctrl_ptr->filt.acc, vars_ptr->w_cmd_int.elec);
 #if defined(PC_TEST)
-    vars.test[28] = vars.acc_cmd_int.elec;
+	vars_ptr->test[28] = vars_ptr->acc_cmd_int.elec;
 #endif
 }
 RAMFUNC_END
 
 RAMFUNC_BEGIN
-void CTRL_FILTS_RunAllISR0()
+void CTRL_FILTS_RunAllISR1(MOTOR_t *motor_ptr)
 {
-    CTRL_FILTS_RunSpeedISR0();
-    CTRL_FILTS_RunAccelISR0();
+    CTRL_FILTS_RunSpeedISR1(motor_ptr);
+    CTRL_FILTS_RunAccelISR1(motor_ptr);
 }
 RAMFUNC_END

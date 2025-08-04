@@ -42,11 +42,11 @@ typedef struct
     PI_t pi;
 } TRQ_t;
 
-void TRQ_Init();
-void TRQ_RunCtrlISR0();		// controller, only SFO
-void TRQ_CalcTrq(QD_t* i_qd_r, float* trq);
+void TRQ_Init(MOTOR_t *motor_ptr);
+void TRQ_RunCtrlISR0(MOTOR_t *motor_ptr);		// controller, only SFO
+void TRQ_CalcTrq(MOTOR_t *motor_ptr,QD_t* i_qd_r, float* trq);
 
 #endif
 
-void TRQ_Reset();	// SFO and RFO
-void TRQ_RunObsISR0(); // Observer, SFO and RFO
+void TRQ_Reset(MOTOR_t *motor_ptr);	// SFO and RFO
+void TRQ_RunObsISR0(MOTOR_t *motor_ptr); // Observer, SFO and RFO

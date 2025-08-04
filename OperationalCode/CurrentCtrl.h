@@ -39,6 +39,7 @@
 
 typedef struct
 {
+    bool en_ff;
 #if defined(CTRL_METHOD_RFO)
     QD_t ff;
     PI_t pi_q;
@@ -50,12 +51,12 @@ typedef struct
 } CURRENT_CTRL_t;
 
 #if defined(CTRL_METHOD_RFO)
-void CURRENT_CTRL_Init(const float bw_red_coeff);
+void CURRENT_CTRL_Init(MOTOR_t *motor_ptr, const float bw_red_coeff);
 #elif defined(CTRL_METHOD_TBC)
-void CURRENT_CTRL_Init();
+void CURRENT_CTRL_Init(MOTOR_t *motor_ptr);
 #endif
-void CURRENT_CTRL_Reset();
-void CURRENT_CTRL_RunISR0();
+void CURRENT_CTRL_Reset(MOTOR_t *motor_ptr);
+void CURRENT_CTRL_RunISR0(MOTOR_t *motor_ptr);
 
 
 

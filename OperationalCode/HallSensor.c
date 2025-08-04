@@ -34,7 +34,9 @@
 
 #include "Controller.h"
 
-HALL_SENS_t hall = { 0 };
+
+
+HALL_SENS_t hall[MOTOR_CTRL_NO_OF_MOTOR] = { 0 };
 
 float Angle_Capture_Table[HALL_SIGNAL_PERMUTATIONS] = \
 // Hall Signal (WVU):	    0b101   ->  0b001   ->  0b011   ->  0b010   ->  0b110   ->  0b100
@@ -42,67 +44,74 @@ float Angle_Capture_Table[HALL_SIGNAL_PERMUTATIONS] = \
 // Resulting Rotor Angle:	-30deg  ->  +30deg  ->  +90deg  ->  +150deg ->  -150deg ->  -90deg
 { NAN, DEG_TO_RAD(+30.0f), DEG_TO_RAD(+150.0f), DEG_TO_RAD(+90.0f), DEG_TO_RAD(-90.0f), DEG_TO_RAD(-30.0f), DEG_TO_RAD(-150.0f), NAN };
 
-void HALL_SENSOR_Init()
+void HALL_SENSOR_Init(MOTOR_t *motor_ptr)
 {
-    hall.w_conv_coeff = PI * params.motor.P * hall.per_cap_freq / params.sys.fb.hall.track_loop.cpr;
-    ADAP_TRACK_LOOP_Init(&hall.track_loop, &params.sys.fb.hall.track_loop);
-    ADAP_TRACK_LOOP_SetSpeedFeedForwardForAdapGain(&hall.track_loop, &hall.track_loop.w_ff);
-    StopWatchInit(&hall.zero_spd_timer, PI_OVER_THREE / params.sys.fb.hall.w_zsd_thresh.elec, params.sys.samp.ts0);
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    HALL_SENS_t* hall_ptr = motor_ptr->hall_ptr;
+	hall_ptr->w_conv_coeff = PI * params_ptr->motor.P * hall_ptr->per_cap_freq / params_ptr->sys.fb.hall.track_loop.cpr;
+    ADAP_TRACK_LOOP_Init(&hall_ptr->track_loop, &params_ptr->sys.fb.hall.track_loop,params_ptr->sys.samp.ts0,params_ptr->motor.P);
+    ADAP_TRACK_LOOP_SetSpeedFeedForwardForAdapGain(&hall_ptr->track_loop, &hall_ptr->track_loop.w_ff);
+    StopWatchInit(&hall_ptr->zero_spd_timer, PI_OVER_THREE / params_ptr->sys.fb.hall.w_zsd_thresh.elec, params_ptr->sys.samp.ts0);
 }
 
-void HALL_SENSOR_Reset()
+void HALL_SENSOR_Reset(MOTOR_t *motor_ptr)
 {
-    hall.signal.uvw = 0b010;
-    hall.signal_prev.uvw = 0b010;
-    hall.per_cap = UINT32_MAX;
-    hall.w_sign = +1.0f;
-    ADAP_TRACK_LOOP_Reset(&hall.track_loop, (ELEC_t) { 0.0f });
-    StopWatchReset(&hall.zero_spd_timer);
+    HALL_SENS_t* hall_ptr = motor_ptr->hall_ptr;
+    hall_ptr->signal.uvw = 0b010;
+    hall_ptr->signal_prev.uvw = 0b010;
+    hall_ptr->per_cap = UINT32_MAX;
+    hall_ptr->w_sign = +1.0f;
+    ADAP_TRACK_LOOP_Reset(&hall_ptr->track_loop, (ELEC_t) { 0.0f });
+    StopWatchReset(&hall_ptr->zero_spd_timer);
 }
 
 RAMFUNC_BEGIN
-void HALL_SENSOR_RunISR0()
+void HALL_SENSOR_RunISR0(MOTOR_t *motor_ptr)
 {
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    HALL_SENS_t* hall_ptr = motor_ptr->hall_ptr;
+    FAULTS_t* faults_ptr = motor_ptr->faults_ptr;
     // Fault detection
-    if ((hall.signal.uvw == 0b000) || (hall.signal.uvw == 0b111))
+    if ((hall_ptr->signal.uvw == 0b000) || (hall_ptr->signal.uvw == 0b111))
     {
-        faults.flags.sw.hall = true;
+        faults_ptr->flags.sw.hall = true;
         return;
     }
 
     // Speed feed forward
-    if (StopWatchIsDone(&hall.zero_spd_timer))
+    if (StopWatchIsDone(&hall_ptr->zero_spd_timer))
     {
-        hall.track_loop.w_ff.elec = 0.0f;
+        hall_ptr->track_loop.w_ff.elec = 0.0f;
     }
     else
     {
-        StopWatchRun(&hall.zero_spd_timer);
-        if (hall.per_cap != 0U)
+        StopWatchRun(&hall_ptr->zero_spd_timer);
+        if (hall_ptr->per_cap != 0U)
         {
-            hall.track_loop.w_ff.elec = hall.w_sign * hall.w_conv_coeff / (float)(hall.per_cap);
+            hall_ptr->track_loop.w_ff.elec = hall_ptr->w_sign * hall_ptr->w_conv_coeff / (float)(hall_ptr->per_cap);
         }
     }
 
-    hall.track_loop.th_r_coarse.elec = Angle_Capture_Table[hall.signal.uvw] + params.sys.fb.hall.th_r_offset.elec;
-    if (hall.signal.uvw != hall.signal_prev.uvw)
+    hall_ptr->track_loop.th_r_coarse.elec = Angle_Capture_Table[hall_ptr->signal.uvw] + params_ptr->sys.fb.hall.th_r_offset.elec;
+    if (hall_ptr->signal.uvw != hall_ptr->signal_prev.uvw)
     {
-        hall.w_sign = SIGN(Wrap2Pi(hall.track_loop.th_r_coarse.elec - hall.track_loop.th_r_coarse_prev.elec));
-        hall.track_loop.th_r_coarse_prev = hall.track_loop.th_r_coarse;
-        StopWatchReset(&hall.zero_spd_timer);
+        hall_ptr->w_sign = SIGN(Wrap2Pi(hall_ptr->track_loop.th_r_coarse.elec - hall_ptr->track_loop.th_r_coarse_prev.elec));
+        hall_ptr->track_loop.th_r_coarse_prev = hall_ptr->track_loop.th_r_coarse;
+        StopWatchReset(&hall_ptr->zero_spd_timer);
     }
-    hall.signal_prev.uvw = hall.signal.uvw;
+    hall_ptr->signal_prev.uvw = hall_ptr->signal.uvw;
 
-    ADAP_TRACK_LOOP_RunISR0(&hall.track_loop);
+    ADAP_TRACK_LOOP_RunISR0(&hall_ptr->track_loop,params_ptr->sys.samp.ts0);
 
-    vars.w_hall.elec = hall.track_loop.w_ff.elec;
-    vars.th_r_hall.elec = hall.track_loop.th_r_est.elec;
+    vars_ptr->w_hall.elec = hall_ptr->track_loop.w_ff.elec;
+    vars_ptr->th_r_hall.elec = hall_ptr->track_loop.th_r_est.elec;
 
 #if defined(PC_TEST)
-    vars.test[39] = (float)(hall.signal.uvw);
-    vars.test[40] = (float)(hall.signal_prev.uvw);
-    vars.test[41] = hall.track_loop.th_r_coarse.elec;
-    vars.test[42] = hall.track_loop.w_tot.elec;
+    vars_ptr->test[39] = (float)(hall_ptr->signal.uvw);
+    vars_ptr->test[40] = (float)(hall_ptr->signal_prev.uvw);
+    vars_ptr->test[41] = hall_ptr->track_loop.th_r_coarse.elec;
+    vars_ptr->test[42] = hall_ptr->track_loop.w_tot.elec;
 #endif
 }
 RAMFUNC_END

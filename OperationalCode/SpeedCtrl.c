@@ -34,51 +34,66 @@
 
 #include "Controller.h"
 
-void SPEED_CTRL_Init()
+void SPEED_CTRL_Init(MOTOR_t *motor_ptr)
 {
+#if defined(CTRL_METHOD_RFO)||defined(CTRL_METHOD_SFO)||defined(CTRL_METHOD_TBC)
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+#endif
+
 #if defined(CTRL_METHOD_RFO)
-    PI_UpdateParams(&ctrl.speed.pi, params.ctrl.speed.kp, params.ctrl.speed.ki * params.sys.samp.ts0, -params.motor.i_peak, params.motor.i_peak);
+    PI_UpdateParams(&ctrl_ptr->speed.pi, params_ptr->ctrl.speed.kp, params_ptr->ctrl.speed.ki * params_ptr->sys.samp.ts1, -params_ptr->motor.i_peak, params_ptr->motor.i_peak);
 #elif defined(CTRL_METHOD_SFO)
-    PI_UpdateParams(&ctrl.speed.pi, params.ctrl.speed.kp, params.ctrl.speed.ki * params.sys.samp.ts0, -params.motor.T_max, params.motor.T_max);
+    PI_UpdateParams(&ctrl_ptr->speed.pi, params_ptr->ctrl.speed.kp, params_ptr->ctrl.speed.ki * params_ptr->sys.samp.ts1, -params_ptr->motor.T_max, params_ptr->motor.T_max);
 #elif defined(CTRL_METHOD_TBC)
-    ctrl.speed.pi.output_max = (params.ctrl.curr.bypass == false) ? SQRT_TWO * params.motor.i_peak : SQRT_TWO * params.ctrl.curr.v_max / params.motor.r;
-    ctrl.speed.pi.output_min = -ctrl.speed.pi.output_max;
-    PI_UpdateParams(&ctrl.speed.pi, params.ctrl.speed.kp, params.ctrl.speed.ki * params.sys.samp.ts0, ctrl.speed.pi.output_min, ctrl.speed.pi.output_max);
+    ctrl_ptr->speed.pi.output_max = (params_ptr->ctrl.curr.bypass == false) ? SQRT_TWO * params_ptr->motor.i_peak : SQRT_TWO * params_ptr->ctrl.curr.v_max / params_ptr->motor.r;
+    ctrl_ptr->speed.pi.output_min = -ctrl_ptr->speed.pi.output_max;
+    PI_UpdateParams(&ctrl_ptr->speed.pi, params_ptr->ctrl.speed.kp, params_ptr->ctrl.speed.ki * params_ptr->sys.samp.ts1, ctrl_ptr->speed.pi.output_min, ctrl_ptr->speed.pi.output_max);
 #endif
 }
 
-void SPEED_CTRL_Reset()
+void SPEED_CTRL_Reset(MOTOR_t *motor_ptr)
 {
-    PI_Reset(&ctrl.speed.pi);
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PI_Reset(&ctrl_ptr->speed.pi);
 }
 
-void SPEED_CTRL_CalcFeedForwards()
+void SPEED_CTRL_CalcFeedForwards(MOTOR_t *motor_ptr)
 {
-    ctrl.speed.ff_inertia = params.ctrl.speed.ff_k_inertia * vars.acc_cmd_int.elec;
-    ctrl.speed.ff_friction = params.ctrl.speed.ff_k_friction * SIGN(vars.w_cmd_int.elec);
-    ctrl.speed.ff_viscous = params.ctrl.speed.ff_k_viscous * vars.w_cmd_int.elec;
-    ctrl.speed.ff_total = ctrl.speed.ff_inertia + ctrl.speed.ff_friction + ctrl.speed.ff_viscous;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+	ctrl_ptr->speed.ff_inertia = params_ptr->ctrl.speed.ff_k_inertia * vars_ptr->acc_cmd_int.elec;
+	ctrl_ptr->speed.ff_friction = params_ptr->ctrl.speed.ff_k_friction * SIGN(vars_ptr->w_cmd_int.elec);
+	ctrl_ptr->speed.ff_viscous = params_ptr->ctrl.speed.ff_k_viscous * vars_ptr->w_cmd_int.elec;
+	ctrl_ptr->speed.ff_total = ctrl_ptr->speed.ff_inertia + ctrl_ptr->speed.ff_friction + ctrl_ptr->speed.ff_viscous;
 }
 
-void SPEED_CTRL_IntegBackCalc(const float cmd)
+void SPEED_CTRL_IntegBackCalc(MOTOR_t *motor_ptr,const float cmd)
 {
-    SPEED_CTRL_CalcFeedForwards();
-    PI_IntegBackCalc(&ctrl.speed.pi, cmd, vars.w_cmd_int.elec - vars.w_final_filt.elec, ctrl.speed.ff_total);
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
+    SPEED_CTRL_CalcFeedForwards(motor_ptr);
+    PI_IntegBackCalc(&ctrl_ptr->speed.pi, cmd, vars_ptr->w_cmd_int.elec - vars_ptr->w_final_filt.elec, ctrl_ptr->speed.ff_total);
 
 }
 
 RAMFUNC_BEGIN
-void SPEED_CTRL_RunISR0()
+void SPEED_CTRL_RunISR1(MOTOR_t *motor_ptr)
 {
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
     // Feed forwards
-    SPEED_CTRL_CalcFeedForwards();
+    SPEED_CTRL_CalcFeedForwards(motor_ptr);
     // PI
-    PI_Run(&ctrl.speed.pi, vars.w_cmd_int.elec, vars.w_final_filt.elec, ctrl.speed.ff_total);
+    PI_Run(&ctrl_ptr->speed.pi, vars_ptr->w_cmd_int.elec, vars_ptr->w_final_filt.elec, ctrl_ptr->speed.ff_total);
     // Output
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_TBC)
-    vars.i_cmd_spd = ctrl.speed.pi.output;
+    vars_ptr->i_cmd_spd = ctrl_ptr->speed.pi.output;
 #elif defined(CTRL_METHOD_SFO)
-    vars.T_cmd_spd = ctrl.speed.pi.output;
+    vars_ptr->T_cmd_spd = ctrl_ptr->speed.pi.output;
 #endif
 }
 RAMFUNC_END

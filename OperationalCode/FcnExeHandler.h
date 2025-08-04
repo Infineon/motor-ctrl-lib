@@ -46,6 +46,21 @@ typedef enum
     Max_Fcn_Count
 } FCN_EXE_LABEL_t;
 
+typedef struct
+{
+  union
+  {
+    struct
+    {
+      uint32_t auto_cal_fault     : 1;
+      uint32_t write_flash_fault  : 1;
+     };
+     uint32_t word_access;
+  };
+
+}FCN_FAULTFLAG_t;
+
+
 typedef uint32_t FCN_EXE_REG_t;
 STATIC_ASSERT(Max_Fcn_Count <= (sizeof(FCN_EXE_REG_t) * 8U), "Change definition of FCN_EXE_REG_t to uint64_t or larger.");
 
@@ -57,6 +72,7 @@ typedef struct
     FCN_EXE_REG_t ack;		// acknowledge,		read by GUI,		written by FW
     FCN_EXE_REG_t done;		// inidicates execution completion,		written/read by FW only
     FCN_EXE_CALLBACK_t callback[Max_Fcn_Count];		// callback functions
+    FCN_FAULTFLAG_t fault_flag;
 } FCN_EXE_HANDLER_t;
 
 extern FCN_EXE_HANDLER_t fcn_exe_handler;

@@ -63,9 +63,10 @@ typedef struct
     float w_conv_coeff;		    // [(Ra/sec-elec).(period-ticks)], speed conversion coefficient
 } HALL_SENS_t;
 
-extern HALL_SENS_t hall;
 
-void HALL_SENSOR_Init();	// hall.per_cap_freq to be set by hardware interface first
-void HALL_SENSOR_Reset();
-void HALL_SENSOR_RunISR0();
+extern HALL_SENS_t hall[MOTOR_CTRL_NO_OF_MOTOR];
+
+void HALL_SENSOR_Init(MOTOR_t *motor_ptr);	// hall[0].time_cap_freq to be set by hardware interface first
+void HALL_SENSOR_Reset(MOTOR_t *motor_ptr);
+void HALL_SENSOR_RunISR0(MOTOR_t *motor_ptr);
 

@@ -34,4 +34,6 @@
 
 #include "Controller.h"
 
-CTRL_VARS_t vars = { 0 };
+ // CTRL_VARS_t vars[MOTOR_CTRL_NO_OF_MOTOR] = { 0 }; /*moved to Controller.c file, debugger is not listing the second arrary*/
+
+

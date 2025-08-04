@@ -56,8 +56,8 @@ typedef struct
 
 UVW_SIGNAL_t BLOCK_COMM_EquivHallSignal(ELEC_t th_r);  // th_r must be wrapped in [-pi,pi)
 
-void BLOCK_COMM_Init();
-void BLOCK_COMM_RunCurrSampISR0();
-void BLOCK_COMM_RunVoltModISR0();
+void BLOCK_COMM_Init(MOTOR_t *motor_ptr);
+void BLOCK_COMM_RunCurrSampISR0(MOTOR_t *motor_ptr);
+void BLOCK_COMM_RunVoltModISR0(MOTOR_t *motor_ptr);
 
 #endif

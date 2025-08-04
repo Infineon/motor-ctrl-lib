@@ -86,7 +86,7 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
   <div class="headertitle"><div class="title">Motor Control Library </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p ><a class="anchor" id="md_README_doxygen"></a></p>
+<div class="textblock"><p ><a class="anchor" id="md_README_doxygen"></a> </p>
 <h2><a class="anchor" id="autotoc_md1"></a>
 Overview</h2>
 <p >Motor Control Library represents integration of the implemented cross platform motor control algorithms with the MCU-family oriented Motor Control Driver Interface (MCDI).</p>
@@ -120,6 +120,7 @@ Overview</h2>
 <li><span style="color:bk">Configurator</span> view</li>
 <li><span style="color:bk">Test Bench</span> view</li>
 <li><span style="color:bk">Tools</span> such as <span style="color:bk">Oscilloscope</span>, <span style="color:bk">Motor Profiler</span>, etc.</li>
+<li><span style="color:bk">Multiple motor drive support </span></li>
 </ul>
 </li>
 </ul>
@@ -138,6 +139,7 @@ Details</h2>
 <li>In addition, both three-shunt and single-shunt configurations are supported, which results in more flexibility in supporting various applications.</li>
 <li>Note that the user will have flexibility to include or bypass the current loop when using <em>TBC in BC</em> mode.</li>
 <li>Bypassing the current loop can address low-cost BLDC applications with no shunts or ADCs.</li>
+<li>Added Current control based startup</li>
 </ul>
 <p ><b>Table 2. Control Methods</b></p>
 <table style="border-collapse: collapse;">
@@ -145,6 +147,8 @@ Details</h2>
 <th style="border: 1px solid black; padding: 8px; background-color: #f0f0f0;">Control Type </th><th style="border: 1px solid black; padding: 8px; background-color: #f0f0f0;">Controlled Entity </th><th style="border: 1px solid black; padding: 8px; background-color: #f0f0f0;">Feedback Type </th><th style="border: 1px solid black; padding: 8px; background-color: #f0f0f0;">Startup Method  </th></tr>
 <tr>
 <td style="border: 1px solid black; padding: 8px;">Open-loop </td><td style="border: 1px solid black; padding: 8px;">Voltage </td><td style="border: 1px solid black; padding: 8px;">N.A. </td><td style="border: 1px solid black; padding: 8px;">N.A.  </td></tr>
+<tr>
+<td style="border: 1px solid black; padding: 8px;">Opne-loop in RFO </td><td style="border: 1px solid black; padding: 8px;">Current </td><td style="border: 1px solid black; padding: 8px;">N.A. </td><td style="border: 1px solid black; padding: 8px;">N.A.  </td></tr>
 <tr>
 <td style="border: 1px solid black; padding: 8px;">FOC in RFO </td><td style="border: 1px solid black; padding: 8px;">Current </td><td style="border: 1px solid black; padding: 8px;">Sensorless </td><td style="border: 1px solid black; padding: 8px;">Rotor Pre-Alignment  </td></tr>
 <tr>
@@ -178,6 +182,10 @@ Details</h2>
 <tr>
 <td style="border: 1px solid black; padding: 8px;">FOC in RFO or SFO </td><td style="border: 1px solid black; padding: 8px;">Speed </td><td style="border: 1px solid black; padding: 8px;">Sensorless </td><td style="border: 1px solid black; padding: 8px;">Open-Loop Volt/Hz  </td></tr>
 <tr>
+<td style="border: 1px solid black; padding: 8px;">FOC in RFO </td><td style="border: 1px solid black; padding: 8px;">Speed </td><td style="border: 1px solid black; padding: 8px;">Sensorless </td><td style="border: 1px solid black; padding: 8px;">Open-Loop Current  </td></tr>
+<tr>
+<td style="border: 1px solid black; padding: 8px;">FOC in RFO </td><td style="border: 1px solid black; padding: 8px;">Speed </td><td style="border: 1px solid black; padding: 8px;">Encoder </td><td style="border: 1px solid black; padding: 8px;">Rotor Pre-Alignment  </td></tr>
+<tr>
 <td style="border: 1px solid black; padding: 8px;">FOC in RFO </td><td style="border: 1px solid black; padding: 8px;">Speed </td><td style="border: 1px solid black; padding: 8px;">Hall Sensor </td><td style="border: 1px solid black; padding: 8px;">N.A  </td></tr>
 <tr>
 <td style="border: 1px solid black; padding: 8px;">TBC in BC </td><td style="border: 1px solid black; padding: 8px;">Speed </td><td style="border: 1px solid black; padding: 8px;">Hall Sensor </td><td style="border: 1px solid black; padding: 8px;">N.A  </td></tr>
@@ -191,11 +199,12 @@ Quick Start with the MCDI</h2>
 <h2><a class="anchor" id="autotoc_md4"></a>
 More information</h2>
 <p >Detailed information on supported toolchains (make variable 'TOOLCHAIN'), kits (make variable 'TARGET'), Hardware setup , Software setup, creating project in ModusToolbox with all the other assets for a particular kit and code example etc. are available in the README file of MOTOR_DEMO Code Example.</p>
-<p ><b>Resources | Links</b></p><ul>
+<p ><b>Resources | Links</b></p>
+<ul>
 <li>Supported motor control kits | KIT_XMC7200_DC_V1 and KIT_PSC3M5_CC2</li>
 <li>Libraries on GitHub | <a href="https://github.com/Infineon/mtb-pdl-cat1">mtb-pdl-cat1</a>. Peripheral Driver Library (PDL) <a href="https://github.com/Infineon/mtb-hal-cat1">mtb-hal-cat1</a>. Hardware Abstraction Layer (HAL) library <a href="https://github.com/Infineon/retarget-io">retarget-io</a>. Utility library to retarget STDIO messages to a UART port</li>
 <li>Tools | <a href="https://www.infineon.com/modustoolbox">ModusToolbox&trade;</a>. ModusToolbox&trade; software is a collection of easy-to-use libraries and tools enabling rapid development with Infineon MCUs for applications ranging from wireless and cloud-connected systems, edge AI/ML, embedded sense and control, to wired USB connectivity using PSoC&trade; Industrial/IoT MCUs, AIROC&trade; Wi-Fi and Bluetooth&reg; connectivity devices, XMC&trade; Industrial MCUs, and EZ-USB&trade;/EZ-PD&trade; wired connectivity controllers. ModusToolbox&trade; incorporates a comprehensive set of BSPs, HAL, libraries, configuration tools, and provides support for industry-standard IDEs to fast-track your embedded application development.</li>
-<li><a href="https://infineon.github.io/motor-ctrl-lib/html/group__group__mcdi__general.html">ModusToolbox Power Conversion API Reference Guide</a></li>
+<li><a href="https://infineon.github.io/motor-ctrl-lib/html/group__group__mcdi__general.html">ModusToolbox MCDI API Reference Guide</a></li>
 <li><a href="https://www.infineon.com/cms/en/design-support/tools/sdk/modustoolbox-software">ModusToolbox Software Environment, Quick Start Guide, Documentation, and Videos</a></li>
 <li><a href="https://www.infineon.com">Infineon Technologies AG</a></li>
 </ul>

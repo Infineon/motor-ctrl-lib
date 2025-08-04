@@ -89,8 +89,9 @@ typedef struct
     ELEC_t w_ffm_thresh; // [Ra/sec-elec], feed forward calculation method threshold
 } INC_ENCODER_t;
 
-extern INC_ENCODER_t inc_encoder;
 
-void INC_ENCODER_Init();
-void INC_ENCODER_Reset(ELEC_t th0);
-void INC_ENCODER_RunISR0();
+extern INC_ENCODER_t inc_encoder[MOTOR_CTRL_NO_OF_MOTOR];
+
+void INC_ENCODER_Init(MOTOR_t* motor_ptr);
+void INC_ENCODER_Reset(MOTOR_t* motor_ptr, ELEC_t th0);
+void INC_ENCODER_RunISR0(MOTOR_t* motor_ptr);

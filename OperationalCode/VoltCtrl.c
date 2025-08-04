@@ -34,23 +34,28 @@
 
 #include "Controller.h"
 
-void VOLT_CTRL_Reset()
+void VOLT_CTRL_Reset(MOTOR_t *motor_ptr)
 {
-    vars.th_r_cmd.elec = 0.0f;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+
+    vars_ptr->th_r_cmd.elec = 0.0f;
 }
 
 RAMFUNC_BEGIN
-void VOLT_CTRL_RunISR0()
+void VOLT_CTRL_RunISR0(MOTOR_t *motor_ptr)
 {
-    // Angle command
-    vars.th_r_cmd.elec = Wrap2Pi(vars.th_r_cmd.elec + vars.w_cmd_int.elec * params.sys.samp.ts0);
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-    vars.th_r_final.elec = vars.th_r_cmd.elec;
-    vars.w_final.elec = vars.w_cmd_int.elec;
+    // Angle command
+    vars_ptr->th_r_cmd.elec = Wrap2Pi(vars_ptr->th_r_cmd.elec + vars_ptr->w_cmd_int.elec * params_ptr->sys.samp.ts0);
+
+    vars_ptr->th_r_final.elec = vars_ptr->th_r_cmd.elec;
+    vars_ptr->w_final.elec = vars_ptr->w_cmd_int.elec;
 
     // Voltage derotation
-    ParkInit(vars.th_r_final.elec, &vars.park_r);
-    ParkTransformInv(&vars.v_qd_r_cmd, &vars.park_r, &vars.v_ab_cmd);
-    vars.v_ab_cmd_tot = vars.v_ab_cmd;
+    ParkInit(vars_ptr->th_r_final.elec, &vars_ptr->park_r);
+    ParkTransformInv(&vars_ptr->v_qd_r_cmd, &vars_ptr->park_r, &vars_ptr->v_ab_cmd);
+    vars_ptr->v_ab_cmd_tot = vars_ptr->v_ab_cmd;
 }
 RAMFUNC_END

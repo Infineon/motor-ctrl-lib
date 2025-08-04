@@ -35,29 +35,39 @@
 #if defined(CTRL_METHOD_SFO)
 #include "Controller.h"
 
-void DELTA_CTRL_Init()
+void DELTA_CTRL_Init(MOTOR_t *motor_ptr)
 {
-    PI_UpdateParams(&ctrl.delta.pi, 0.0f, 0.0f, -params.ctrl.delta.vq_max, params.ctrl.delta.vq_max);
-    ctrl.delta.bw_red_coeff = 1.0f;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+    PI_UpdateParams(&ctrl_ptr->delta.pi, 0.0f, 0.0f, -params_ptr->ctrl.delta.vq_max, params_ptr->ctrl.delta.vq_max);
+    ctrl_ptr->delta.bw_red_coeff = 1.0f;
 }
 
-void DELTA_CTRL_Reset()
+void DELTA_CTRL_Reset(MOTOR_t *motor_ptr)
 {
-    PI_Reset(&ctrl.trq.pi);
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+
+     PI_Reset(&ctrl_ptr->trq.pi);
 }
 
 RAMFUNC_BEGIN
-void DELTA_CTRL_RunISR0()
+void DELTA_CTRL_RunISR0(MOTOR_t *motor_ptr)
 {
-    float w_abs_sat_elec = SAT(params.ctrl.delta.bw_mult_wl.elec, params.ctrl.delta.bw_mult_wh.elec, vars.w_final_filt_abs.elec);
-    ctrl.delta.bw_ratio = SlopeIntercept(params.ctrl.delta.bw_mult_slope, params.ctrl.delta.bw_mult_inter, w_abs_sat_elec);
-    ctrl.delta.bw = params.ctrl.delta.bw * ctrl.delta.bw_red_coeff * (1.0f + ctrl.delta.bw_ratio * (params.ctrl.delta.bw_mult - 1.0f));
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-    ctrl.delta.pi.kp = ctrl.delta.bw * params.ctrl.delta.pole_sep * vars.la_cmd_final;
-    ctrl.delta.pi.ki = POW_TWO(ctrl.delta.bw) * (params.ctrl.delta.pole_sep - 1.0f) * vars.la_cmd_final * params.sys.samp.ts0;
 
-    PI_Run(&ctrl.delta.pi, vars.delta_cmd.elec, vars.delta_est.elec, 0.0f);
-    vars.v_qd_s_cmd.q = ctrl.delta.pi.output;
+    float w_abs_sat_elec = SAT(params_ptr->ctrl.delta.bw_mult_wl.elec, params_ptr->ctrl.delta.bw_mult_wh.elec, vars_ptr->w_final_filt_abs.elec);
+    ctrl_ptr->delta.bw_ratio = SlopeIntercept(params_ptr->ctrl.delta.bw_mult_slope, params_ptr->ctrl.delta.bw_mult_inter, w_abs_sat_elec);
+    ctrl_ptr->delta.bw = params_ptr->ctrl.delta.bw * ctrl_ptr->delta.bw_red_coeff * (1.0f + ctrl_ptr->delta.bw_ratio * (params_ptr->ctrl.delta.bw_mult - 1.0f));
+
+    ctrl_ptr->delta.pi.kp = ctrl_ptr->delta.bw * params_ptr->ctrl.delta.pole_sep * vars_ptr->la_cmd_final;
+    ctrl_ptr->delta.pi.ki = POW_TWO(ctrl_ptr->delta.bw) * (params_ptr->ctrl.delta.pole_sep - 1.0f) * vars_ptr->la_cmd_final * params_ptr->sys.samp.ts0;
+
+    PI_Run(&ctrl_ptr->delta.pi, vars_ptr->delta_cmd.elec, vars_ptr->delta_est.elec, 0.0f);
+    vars_ptr->v_qd_s_cmd.q = ctrl_ptr->delta.pi.output;
 }
 RAMFUNC_END
 
