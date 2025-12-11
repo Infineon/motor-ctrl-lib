@@ -52,11 +52,11 @@ void CTRL_ResetWcmdInt(MOTOR_t *motor_ptr, const ELEC_t w0)
 }
 
 RAMFUNC_BEGIN
-void CTRL_UpdateWcmdIntISR1(MOTOR_t *motor_ptr,const ELEC_MECH_t w_target)
+void CTRL_UpdateWcmdIntISR1(MOTOR_t *motor_ptr,const ELEC_MECH_t w_target, float rate_lim)
 {
     CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
     PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-	vars_ptr->w_cmd_int.elec = RateLimit(params_ptr->sys.rate_lim.w_cmd.elec * params_ptr->sys.samp.ts1, w_target.elec, vars_ptr->w_cmd_int.elec);
+	vars_ptr->w_cmd_int.elec = RateLimit(rate_lim * params_ptr->sys.samp.ts1, w_target.elec, vars_ptr->w_cmd_int.elec);
 }
 RAMFUNC_END

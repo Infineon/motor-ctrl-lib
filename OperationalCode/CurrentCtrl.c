@@ -81,7 +81,7 @@ void CURRENT_CTRL_RunISR0(MOTOR_t *motor_ptr)
     }
     else
     {
-    	ctrl_ptr->curr.ff = (QD_t){ 0.0f, 0.0f };
+    	ctrl_ptr->curr.ff = QD_Zero;
     }
 
     // PIs

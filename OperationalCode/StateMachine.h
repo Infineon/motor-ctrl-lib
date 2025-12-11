@@ -71,6 +71,9 @@ typedef enum
 #elif defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_TBC)
     Current_CL,		// Closed-loop current control
 #endif
+#if defined(CTRL_METHOD_RFO)
+    Position_CL,     // Closed-loop position control
+#endif
     State_ID_Max
 } STATE_ID_t;
 

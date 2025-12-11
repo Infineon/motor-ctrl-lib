@@ -382,6 +382,11 @@ void SENSOR_IFACE_RunISR1(MOTOR_t *motor_ptr)
         vars_ptr->w_cmd_ext.elec = profiler_ptr->w_cmd_final.elec * vars_ptr->dir;
         break;
 #endif
+#if defined(CTRL_METHOD_RFO)
+    case Position_Mode_FOC_Encoder_Align_Startup:
+        vars_ptr->p_cmd_ext =vars_ptr->cmd_final*vars_ptr->dir*params_ptr->sys.cmd.p_max;
+         break;
+#endif
     }
 }
 

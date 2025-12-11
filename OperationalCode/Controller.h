@@ -57,6 +57,7 @@ typedef struct MOTOR_str MOTOR_t;
 #include "Profiler.h"
 #include "AdapTrackLoop.h"
 #include "IncEncoder.h"
+#include "PositionCtrl.h"
 
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
 #include "FluxWeaken.h"
@@ -81,6 +82,7 @@ typedef struct
     CTRL_FILTS_t filt;
     SPEED_CTRL_t speed;
 #if defined(CTRL_METHOD_RFO)
+    POSITION_CTRL_t position;
     PHASE_ADV_t ph_adv;
 #elif defined(CTRL_METHOD_SFO)
     TRQ_t trq;
@@ -143,5 +145,5 @@ extern HW_FCN_t hw_fcn;
 extern MOTOR_t motor[MOTOR_CTRL_NO_OF_MOTOR];
 
 void CTRL_ResetWcmdInt(MOTOR_t *Motor_ptr,const ELEC_t w0);
-void CTRL_UpdateWcmdIntISR1(MOTOR_t *Motor_ptr,const ELEC_MECH_t w_target);
+void CTRL_UpdateWcmdIntISR1(MOTOR_t *Motor_ptr,const ELEC_MECH_t w_target, float rate_lim);
 

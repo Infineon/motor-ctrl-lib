@@ -1,4 +1,4 @@
-# ModusToolbox&trade; Motor Control Library 3.0
+# ModusToolbox&trade; Motor Control Library 3.1
 
 Motor control library provides implementation of motor control algorithm to various control methods, control types and different motors. 
 
@@ -16,7 +16,7 @@ Below table provides details of the different control type, controlled entity, f
 | FOC in RFO        | Current           | Sensorless    | Six Pulse Injection      |
 | FOC in RFO        | Current           | Sensorless    | High Frequency Injection |
 | FOC in RFO        | Current           | Sensorless    | Dyno Mode                |
-| FOC in RFO*       | Current           | Encoder       | Rotor Pre-Alignment      |
+| FOC in RFO        | Current           | Encoder       | Rotor Pre-Alignment      |
 | FOC in RFO        | Current           | Hall Sensor   | N.A.                     |
 | TBC in BC         | Current           | Hall Sensor   | N.A.                     |
 | TBC in TC         | Current           | Hall Sensor   | N.A.                     |
@@ -29,8 +29,9 @@ Below table provides details of the different control type, controlled entity, f
 | FOC in RFO or SFO | Speed             | Sensorless    | High Frequency Injection |
 | FOC in RFO or SFO | Speed             | Sensorless    | Open-Loop Volt/Hz        |
 | FOC in RFO	    | Speed             | Sensorless    | Open-Loop Current        |
-| FOC in RFO*       | Speed             | Encoder       | Rotor Pre-Alignment      |
+| FOC in RFO        | Speed             | Encoder       | Rotor Pre-Alignment      |
 | FOC in RFO        | Speed             | Hall Sensor   | N.A.                     |
+| FOC in RFO*       | Position          | Encoder       | Rotor Pre-Alignment      |
 | TBC in BC         | Speed             | Hall Sensor   | N.A.                     |
 | TBC in TC         | Speed             | Hall Sensor   | N.A.                     |
 
@@ -38,7 +39,12 @@ Below table provides details of the different control type, controlled entity, f
 
 ### What Changed?
 
-The Motor Control library has been revised to 3.0 with new features: 
+Motor Control library : V3.1.0 
+* Position Control support added
+* Added separate ramp rate configuration for V/F Open-Loop mode
+* Added square wave based HFI startup method 
+
+Motor Control library : V3.0.0 
 * Multiple motor driver support 
 * Current control based startup method
 * Speed control loop code execution, changed from ISR0 to ISR1

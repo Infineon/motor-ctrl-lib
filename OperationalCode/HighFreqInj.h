@@ -38,36 +38,75 @@
 #include "Biquad.h"
 #include "PLL.h"
 
+// INPUTS:
+// vars.w_final_filt,		from vars.w_est
+// vars.i_ab_fb_tot,
+
+// OUTPUTS:
+// ctrl.high_freq_inj.v_ab_cmd,	added to the main voltage components
+// vars.w_est,
+// vars.th_r_est,
+// vars.th_s_est,			SFO
+// vars.delta_est,			SFO
+// vars.la_qd_s_est, 		SFO
+// vars.park_r,
+// vars.park_s,				SFO
+// vars.i_qd_r_fb,
+// vars.i_qd_s_fb,			SFO
+// vars.i_ab_fb
 
 typedef struct
 {
     ELEC_t th_h;
     PARK_t park_h;
-#if defined(CTRL_METHOD_SFO)
-    PARK_t park_delta;
-#endif
 
     BIQUAD_t lpf_i_q_r;
     BIQUAD_t lpf_i_d_r;
-    PI_t pi_pll_r;
-    BILINEAR_INTEG_t integ_pll_r;
 
     QD_t i_qd_r_fb_tot;
     QD_t i_qd_r_fb_hf;
     QD_t i_qd_r_fb_demod;
+} HIGH_FREQ_INJ_SIN_t;
 
-#if defined(CTRL_METHOD_SFO)
-    POLAR_t la_polar_r_est;
-#endif
+
+typedef struct
+{
+    TIMER_t wave_gen_timer;
+    float wave;
+    
+    AB_t i_ab_fb_prev;      // previous
+    AB_t d_i_ab_fb;         // delta
+    AB_t d_i_ab_fb_prev;    // delta, previous
+    AB_t dd_i_ab_fb;        // delta-delta
+    QD_t dd_i_qd_r_fb;      // delta-delta
+
+    INTEG_DUMP_FILT_t pll_notch;
+} HIGH_FREQ_INJ_SQR_t;
+
+typedef struct
+{
+    // Type-specific variables (sine wave or square wave) ......
+    HIGH_FREQ_INJ_SIN_t sine;
+    HIGH_FREQ_INJ_SQR_t square;
+
+    // Common variables ........................................
+    PI_t pi_pll_r;
+    BILINEAR_INTEG_t integ_pll_r;
 
     QD_t v_qd_r_cmd;
     AB_t v_ab_cmd;
+
+#if defined(CTRL_METHOD_SFO)
+    POLAR_t la_polar_r_est;
+    PARK_t park_delta;
+#endif
+    // .........................................................
 } HIGH_FREQ_INJ_t;
 
-void HIGH_FREQ_INJ_Init(MOTOR_t *motor_ptr);
-void HIGH_FREQ_INJ_Reset(MOTOR_t *motor_ptr, const ELEC_t w0, const ELEC_t th0);
-void HIGH_FREQ_INJ_RunFiltISR0(MOTOR_t *motor_ptr); // Current separation filters
-void HIGH_FREQ_INJ_RunCtrlISR0(MOTOR_t *motor_ptr);
-void HIGH_FREQ_INJ_RunISR0(MOTOR_t *motor_ptr);
+void HIGH_FREQ_INJ_Init(MOTOR_t* motor_ptr);
+void HIGH_FREQ_INJ_Reset(MOTOR_t* motor_ptr, const ELEC_t w0, const ELEC_t th0);
+void HIGH_FREQ_INJ_RunFiltISR0(MOTOR_t* motor_ptr); // Current separation filters
+void HIGH_FREQ_INJ_RunCtrlISR0(MOTOR_t* motor_ptr);
+void HIGH_FREQ_INJ_RunISR0(MOTOR_t* motor_ptr);
 
 #endif

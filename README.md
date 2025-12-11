@@ -76,7 +76,7 @@ Motor Control Library represents integration of the implemented cross platform m
 
 ### Details
 
-- Motor control library supports 25 different permutations of the control type, control entity, feedback type, and startup method as shown in the table above.
+- Motor control library supports 28 different permutations of the control type, control entity, feedback type, and startup method as shown in the table above.
 - In addition, both three-shunt and single-shunt configurations are supported, which results in more flexibility in supporting various applications.
 - Note that the user will have flexibility to include or bypass the current loop when using *TBC in BC* mode.
 - Bypassing the current loop can address low-cost BLDC applications with no shunts or ADCs.
@@ -129,6 +129,8 @@ Motor Control Library represents integration of the implemented cross platform m
 <!--  |    FOC in RFO     |      Speed        |    Encoder    |   Rotor Pre-Alignment    | -->
 
 <!--  |    FOC in RFO     |      Speed        |  Hall Sensor  |           N.A            | -->
+
+<!--  |    FOC in RFO     |     Position      |    Encoder    |   Rotor Pre-Alignment    | -->
 
 <!--  |    TBC in BC      |      Speed        |  Hall Sensor  |           N.A            | -->
 
@@ -268,6 +270,12 @@ Motor Control Library represents integration of the implemented cross platform m
     <td style="border: 1px solid black; padding: 8px;">Speed</td>
     <td style="border: 1px solid black; padding: 8px;">Hall Sensor</td>
     <td style="border: 1px solid black; padding: 8px;">N.A</td>
+  </tr>
+   <tr>
+    <td style="border: 1px solid black; padding: 8px;">FOC in RFO</td>
+    <td style="border: 1px solid black; padding: 8px;">Position</td>
+    <td style="border: 1px solid black; padding: 8px;">Encoder</td>
+    <td style="border: 1px solid black; padding: 8px;">Rotor Pre-Alignment</td>
   </tr>
   <tr>
     <td style="border: 1px solid black; padding: 8px;">TBC in BC</td>

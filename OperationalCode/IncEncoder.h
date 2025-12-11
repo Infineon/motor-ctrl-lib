@@ -86,6 +86,7 @@ typedef struct
 
     float w_conv_coeff;	 // [(Ra/sec-elec).(period-ticks)], speed conversion coefficient
     float th_conv_coeff; // [Ra-elec/(position-ticks)], angle conversion coefficient
+    float th_mech_conv_coeff; // [Ra-elec/(position-ticks)], mechanical angle conversion coefficient
     ELEC_t w_ffm_thresh; // [Ra/sec-elec], feed forward calculation method threshold
 } INC_ENCODER_t;
 

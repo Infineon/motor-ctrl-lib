@@ -40,9 +40,9 @@
 #endif
 
 // Latest firmware version, 0xAABC==vAA.B.C, Example: 0x0150==v1.5.0.
-#define FIRMWARE_VER			(0x0300UL)
+#define FIRMWARE_VER			(0x0310UL)
 #define PARAMS_CODE				(~0xBADC0DEUL)	// Do not change this code
-#define PARAMS_VER				(0x0004UL)		// Parameters version. Change when params struct changes.
+#define PARAMS_VER				(0x0005UL)		// Parameters version. Change when params struct changes.
 #if defined(CTRL_METHOD_RFO)
 #define BUILD_CONFIG_ID			(0x0000UL)		// Indicating RFO build config
 #elif defined(CTRL_METHOD_SFO)
@@ -186,10 +186,14 @@ typedef struct
 typedef struct
 {
     ELEC_t w_cmd;				// [(Ra/sec-elec)/sec], limiting speed command slope
+    ELEC_t w_ol_cmd;			// [(Ra/sec-elec)/sec], limiting Open loop speed command slope
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_TBC)
     float i_cmd;				// [A/sec], limiting current command slope
 #elif defined(CTRL_METHOD_SFO)
     float T_cmd;				// [Nm/sec], limiting torque command slope
+#endif
+#if defined(CTRL_METHOD_RFO)
+    float p_cmd;				// [Ra/sec], limiting position command slope
 #endif
 } RATE_LIM_PARAMS_t;
 
@@ -228,6 +232,9 @@ typedef struct
     float i_max;			// [A]
 #elif defined(CTRL_METHOD_SFO)
     float T_max;			// [Nm]
+#endif
+#if defined(CTRL_METHOD_RFO)
+     float p_max;	       //[Ra] 
 #endif
 } CMD_PARAMS_t;
 
@@ -367,6 +374,9 @@ typedef enum
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
     Profiler_Mode,                              // Profiler mode
 #endif
+#if defined(CTRL_METHOD_RFO)
+    Position_Mode_FOC_Encoder_Align_Startup       // Closed-loop sensored-foc position control with encoder feedback and pre-alignment at startup
+#endif
 } CTRL_MODE_t;
 
 typedef struct
@@ -379,6 +389,7 @@ typedef struct
     float ff_k_viscous;		// [A/(Ra/sec-elec)] in RFO, [Nm/(Ra/sec-elec)] in SFO, viscous damping feed forward coefficient
     float ff_k_friction;	// [A] in RFO, [Nm] in SFO, friction feed forward coefficient
     float ol_cl_tr_coeff;	// [%] torque precalculation coefficient when transitioning from ol to cl
+    float ff_coef;		    // [#], feed forward coefficient
 } SPEED_CTRL_PARAMS_t;
 
 
@@ -491,17 +502,46 @@ typedef struct
     float v_pulse;		// [V], dc+ to dc-
 } SIX_PULSE_INJ_PARAMS_t;
 
+typedef enum
+{
+    Sine_Wave = 0U,
+    Square_Wave
+} HIGH_FREQ_INJ_TYPE_t;
+
 typedef struct
 {
-    float w_h;				// [Ra/sec], excitation freqeuncy, at least 1 decade below switching frequency
     float w_sep;			// [Ra/sec], separation freqeuncy, at least 1 decade below excitation frequency
-    PLL_PARAMS_t pll;		// []
     QD_t i_qd_r_peak;		// [A], excitation current peaks
     QD_t v_qd_r_coeff;		// {[V/(Ra/sec],[V]}, excitation voltage coefficients, line-to-neutral
     float lpf_biquad_a[3];	// Low-pass biquad filter coefficients:
     float lpf_biquad_b[3];	// H(s) = (a0+a1*s+a2*s^2)/(b0+b1*s+b2*s^2)
-    float bw_red_coeff;		// [%], bandwidth reduction coefficient applied to current loop (RFO) or flux/delta loops (SFO) when running high frequency injection
-    float lock_time;		// [sec], lock time in sec
+} HIGH_FREQ_INJ_SIN_PARAMS_t;
+
+typedef struct
+{
+    float t_h;  // [sec], excitation time (half period)
+    float v_h;  // [V], excitation voltage magnitude
+} HIGH_FREQ_INJ_SQR_PARAMS_t;
+
+typedef struct
+{
+    HIGH_FREQ_INJ_TYPE_t type;  // [], hfi type
+    float i_peak;		        // [A], excitation current peak
+    float w_h;			        // [Ra/sec], excitation freqeuncy, must be less than half fs0
+    union{ /* Added to maintain backward compatibility  between Motor control lib V3.0.0 */
+    	    struct{    
+            float w_sep;			// [Ra/sec], separation freqeuncy, at least 1 decade below excitation frequency
+            QD_t i_qd_r_peak;		// [A], excitation current peaks
+            QD_t v_qd_r_coeff;		// {[V/(Ra/sec],[V]}, excitation voltage coefficients, line-to-neutral
+            float lpf_biquad_a[3];	// Low-pass biquad filter coefficients:
+            float lpf_biquad_b[3];	// H(s) = (a0+a1*s+a2*s^2)/(b0+b1*s+b2*s^2)
+        };
+        HIGH_FREQ_INJ_SIN_PARAMS_t sine;    // [], sine wave type's parameters
+    };
+    HIGH_FREQ_INJ_SQR_PARAMS_t square;  // [], square wave type's parameters
+    PLL_PARAMS_t pll;	// [], phase lock loop
+    float bw_red_coeff; // [%], bandwidth reduction coefficient applied to current loop (RFO) or flux/delta loops (SFO) when running high frequency injection
+    float lock_time;	// [sec], lock time in sec
 } HIGH_FREQ_INJ_PARAMS_t;
 
 typedef struct
@@ -550,6 +590,17 @@ typedef struct
     TRAP_COMM_PARAMS_t trap;
 } TRAP_BLOCK_COMM_PARAMS_t;
 #endif
+#if defined(CTRL_METHOD_RFO)
+typedef struct
+{
+    float bw;				// [Ra/sec], bandwidth
+    float pole_sep;			// [#]
+    float kp;				
+    float ki;		
+    float ff_coef;		     // [#], feed forward coefficient	
+    float pi_output_limit;
+} POSITION_CTRL_PARAMS_t;
+#endif
 
 typedef struct
 {
@@ -572,6 +623,9 @@ typedef struct
     HIGH_FREQ_INJ_PARAMS_t high_freq_inj;
 #endif
     VOLT_CTRL_PARAMS_t volt;
+ #if defined(CTRL_METHOD_RFO)   
+    POSITION_CTRL_PARAMS_t position;
+ #endif   
 } CTRL_PARAMS_t;
 
 
@@ -599,6 +653,7 @@ typedef struct /* Enable/disable autocal for selected functions*/
       uint32_t observer_pll		      : 1;
 #if defined(CTRL_METHOD_RFO)
       uint32_t flux_weakening         : 1;
+      uint32_t position_control       : 1;
 #endif
 #if defined(CTRL_METHOD_SFO)
       uint32_t flux_control           :1;
@@ -647,11 +702,10 @@ extern MC_INFO_t mc_info;
 void PARAMS_Init(MOTOR_t *motor_ptr);
 #endif
 
-void PARAMS_InitManual(PARAMS_t* params_ptr);
-#if (MOTOR_CTRL_MOTOR1_ENABLED)
-void PARAMS_InitManual_M1(PARAMS_t* params_ptr);
+extern void PARAMS_InitManual(PARAMS_t* params_ptr);
+#if (MOTOR_CTRL_NO_OF_MOTOR >1)
+extern void PARAMS_InitManual_M1(PARAMS_t* params_ptr);
 #endif
-void PARAMS_InitAutoCalc(PARAMS_t* params_ptr);
-
+extern void PARAMS_InitAutoCalc(PARAMS_t* params_ptr);
 
 void PARAMS_UpdateLookupTable(void);

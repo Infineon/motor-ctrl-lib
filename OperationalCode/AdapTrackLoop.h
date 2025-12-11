@@ -38,7 +38,7 @@
 typedef struct
 {
     // Inputs
-    ELEC_t th_r_coarse;		// [Ra-elec], angle, coarse
+    ELEC_t th_r_coarse; // [Ra-elec], angle, coarse
     ELEC_t th_r_coarse_prev;// [Ra-elec], previous angle, coarse
     ELEC_t w_ff;			// [Ra/sec-elec], speed feed forward
 
@@ -53,7 +53,7 @@ typedef struct
     float w_fb_coeff;		// [], speed feedback coefficient for angle estimation loop
     float adaptive_gain;    // [Ra/sec], adaptive loop gain for angle estimation loop
     MINMAX_t w0_th;			// [Ra/sec], limits of angle estimation loop's bandwidth
-} ADAP_TRACK_LOOP_t;
+  } ADAP_TRACK_LOOP_t;
 
 void ADAP_TRACK_LOOP_SetSpeedFeedForwardForAdapGain(ADAP_TRACK_LOOP_t* atl_instance, ELEC_t* w_ff_adap_gain); // w_ff_filt by default
 void ADAP_TRACK_LOOP_Init(ADAP_TRACK_LOOP_t* atl_instance, ADAP_TRACK_LOOP_PARAMS_t* atl_params, float sample_time,float motor_poles);

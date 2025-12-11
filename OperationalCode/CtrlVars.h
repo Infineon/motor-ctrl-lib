@@ -63,10 +63,11 @@ typedef struct
     ELEC_t th_r_cmd;			// For voltage control only
     ELEC_MECH_t th_r_fb;		// Directly-sensed feedback value
     ELEC_t th_r_hall;			// Estimated by hall-sensor's loop
-    ELEC_t th_r_enc;			// Estimated by encoder loop
+    ELEC_MECH_t th_r_enc;		// Estimated by encoder loop
     ELEC_t th_r_est;			// Estimated by observer
-    ELEC_t th_r_final;			// Final value, either sensed, estimated, or commanded
-
+    ELEC_MECH_t th_r_final;			// Final value, either sensed, estimated, or commanded
+    
+    
 #if defined(CTRL_METHOD_SFO)
     ELEC_t th_s_est;			// Estimated by observer, SFO
     ELEC_t delta_cmd;			// Load angle command, SFO
@@ -144,6 +145,10 @@ typedef struct
 
 #if defined(PC_TEST)
     float test[128];
+#endif
+#if defined(CTRL_METHOD_RFO)
+   float p_cmd_ext;
+   float p_cmd_int;
 #endif
 } CTRL_VARS_t;
 

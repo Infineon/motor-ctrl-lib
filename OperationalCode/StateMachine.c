@@ -140,6 +140,7 @@ void STATE_MACHINE_ResetAllModules(MOTOR_t *motor_ptr)
     VOLT_MOD_Init(motor_ptr);
 #if defined(CTRL_METHOD_RFO)
     PHASE_ADV_Init(motor_ptr);
+    POSITION_CTRL_Init(motor_ptr);
 #elif defined(CTRL_METHOD_SFO)
     FLUX_CTRL_Init(motor_ptr,1.0f);
     TRQ_Init(motor_ptr);
@@ -276,7 +277,7 @@ void STATE_MACHINE_ResetVariable(MOTOR_t *motor_ptr)
 
 	vars_ptr->i_qd_r_fb.d  = 0.0f;
 	vars_ptr->i_qd_r_fb.q  = 0.0f;
-
+    POSITION_CTRL_Reset(motor_ptr);
 #endif
 #if defined(CTRL_METHOD_TBC)
 	TRAP_COMM_Reset(motor_ptr);
@@ -418,6 +419,11 @@ static void VoltOLEntry(MOTOR_t *motor_ptr)
         sm_ptr->add_callback.RunISR0 = PROFILER_RunISR0;
     }
 #endif
+
+    if(params_ptr->sys.rate_lim.w_ol_cmd.elec ==0) /* to maintain backward compataility */
+    {
+      params_ptr->sys.rate_lim.w_ol_cmd.elec = params_ptr->sys.rate_lim.w_cmd.elec;
+    }
     sm_ptr->current = sm_ptr->next; // must be in critical section
     hw_fcn.ExitCriticalSection();	// --------------------
 }
@@ -445,7 +451,7 @@ static void VoltOLISR1(MOTOR_t *motor_ptr)
     CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
     PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext);
+    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext, params_ptr->sys.rate_lim.w_ol_cmd.elec);
 
     vars_ptr->v_qd_r_cmd.q = MAX(params_ptr->ctrl.volt.v_min + ABS(vars_ptr->w_cmd_int.elec) * params_ptr->ctrl.volt.v_to_f_ratio, 0.0f) * vars_ptr->dir;
     CTRL_FILTS_RunAllISR1(motor_ptr);
@@ -568,12 +574,12 @@ RAMFUNC_END
 static void SpeedCLISR1(MOTOR_t *motor_ptr)
 {
 	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
 #if defined(CTRL_METHOD_RFO)||defined(CTRL_METHOD_SFO)||defined(CTRL_METHOD_TBC)
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
     PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
 #endif
 
-    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext);
+    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext, params_ptr->sys.rate_lim.w_cmd.elec);
     CTRL_FILTS_RunAllISR1(motor_ptr);
     SPEED_CTRL_RunISR1(motor_ptr);
 #if defined(CTRL_METHOD_RFO)
@@ -594,6 +600,96 @@ static void SpeedCLISR1(MOTOR_t *motor_ptr)
 
 }
 
+#if defined(CTRL_METHOD_RFO)
+static void PositionCLEntry(MOTOR_t *motor_ptr)
+{
+    STATE_MACHINE_t* sm_ptr = motor_ptr->sm_ptr;
+    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+
+    switch (params_ptr->sys.fb.mode)
+    {
+    default:
+    case AqB_Enc:
+    	vars_ptr->th_r_final.mech = vars_ptr->th_r_enc.mech;
+        break;
+    case Direct:
+    	vars_ptr->th_r_final.mech = vars_ptr->th_r_fb.mech;
+        break;
+    }
+
+   
+    POSITION_CTRL_cmdInt(motor_ptr,vars_ptr->th_r_final.mech); 
+
+    if ((sm_ptr->current == Align) || (sm_ptr->current == Brake_Boot))
+    {
+        ELEC_t w0 = Elec_Zero;
+        CTRL_ResetWcmdInt(motor_ptr,w0);
+        SPEED_CTRL_Reset(motor_ptr);
+        vars_ptr->i_cmd_int = 0.0f;
+        FLUX_WEAKEN_Reset(motor_ptr);
+    }
+ 
+ }
+
+RAMFUNC_BEGIN
+static void PositionCLISR0(MOTOR_t *motor_ptr)
+{
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    
+    FeedbackISR0Wrap[motor_ptr->motor_instance](motor_ptr);
+    switch (params_ptr->sys.fb.mode)
+    {
+    default:
+    case AqB_Enc:
+    	vars_ptr->w_final.elec = vars_ptr->w_enc.elec;
+    	vars_ptr->th_r_final.elec = vars_ptr->th_r_enc.elec;
+    	vars_ptr->th_r_final.mech = vars_ptr->th_r_enc.mech;
+        break;
+    case Direct:
+    	vars_ptr->w_final.elec = vars_ptr->w_fb.elec;
+    	vars_ptr->th_r_final.elec = vars_ptr->th_r_fb.elec;
+    	vars_ptr->th_r_final.mech = vars_ptr->th_r_fb.mech;
+        break;
+    }
+
+    CURRENT_CTRL_RunISR0(motor_ptr);
+    TRQ_RunObsISR0(motor_ptr);
+    VOLT_MOD_RunISR0(motor_ptr);
+   
+}
+RAMFUNC_END
+static void PositionCLISR1(MOTOR_t *motor_ptr)
+{
+	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
+    CTRL_t* ctrl_ptr   = motor_ptr->ctrl_ptr;
+
+
+    vars_ptr->p_cmd_int = RateLimit(params_ptr->sys.rate_lim.p_cmd * params_ptr->sys.samp.ts1, vars_ptr->p_cmd_ext, vars_ptr->p_cmd_int);
+
+    POSITION_CTRL_RunISR1(motor_ptr);
+    
+    #if (0) //if speed ramp
+    vars_ptr->w_cmd_ext.elec =ctrl_ptr->position.pi.output;
+    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext, params_ptr->sys.rate_lim.w_cmd.elec);
+    #else
+    vars_ptr->w_cmd_int.elec = ctrl_ptr->position.pi.output;
+    #endif
+    
+    CTRL_FILTS_RunAllISR1(motor_ptr);
+    
+    SPEED_CTRL_RunISR1(motor_ptr);
+
+    vars_ptr->i_cmd_prot = SAT(-protect_ptr->motor.i2t.i_limit, protect_ptr->motor.i2t.i_limit, vars_ptr->i_cmd_spd);
+    vars_ptr->i_cmd_int = RateLimit(params_ptr->sys.rate_lim.i_cmd * params_ptr->sys.samp.ts1, vars_ptr->i_cmd_prot, vars_ptr->i_cmd_int);
+    PHASE_ADV_RunISR1(motor_ptr);
+    FLUX_WEAKEN_RunISR1(motor_ptr);
+
+}
+#endif 
 static void FaultEntry(MOTOR_t *motor_ptr)
 {
 	STATE_MACHINE_t* sm_ptr = motor_ptr->sm_ptr;
@@ -897,7 +993,7 @@ static void SpeedOLToCLISR1(MOTOR_t *motor_ptr)
 	PARAMS_t* params_ptr = motor_ptr->params_ptr;
 	STATE_MACHINE_t* sm_ptr = motor_ptr->sm_ptr;
 
-    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext);
+    CTRL_UpdateWcmdIntISR1(motor_ptr,vars_ptr->w_cmd_ext,params_ptr->sys.rate_lim.w_cmd.elec);
 
 #if defined(CTRL_METHOD_RFO)
     bool prev_state_volt_ol = Mode(params_ptr,Speed_Mode_FOC_Sensorless_Volt_Startup);
@@ -1236,6 +1332,10 @@ static void CurrentOLEntry(MOTOR_t *motor_ptr)
     {
         sm_ptr->add_callback.RunISR0 = PROFILER_RunISR0;
     }
+    if(params_ptr->sys.rate_lim.w_ol_cmd.elec ==0) /* to maintain backward compataility */
+    {
+      params_ptr->sys.rate_lim.w_ol_cmd.elec = params_ptr->sys.rate_lim.w_cmd.elec;
+    }
     sm_ptr->current = sm_ptr->next; // must be in critical section
     hw_fcn.ExitCriticalSection();// --------------------
 }
@@ -1274,7 +1374,7 @@ static void CurrentOLISR1(MOTOR_t *motor_ptr)
     CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
     PARAMS_t* params_ptr = motor_ptr->params_ptr;
 
-    CTRL_UpdateWcmdIntISR1(motor_ptr, vars_ptr->w_cmd_ext);
+    CTRL_UpdateWcmdIntISR1(motor_ptr, vars_ptr->w_cmd_ext,params_ptr->sys.rate_lim.w_ol_cmd.elec);
     CTRL_FILTS_RunSpeedISR1(motor_ptr);
     vars_ptr->i_cmd_prot = SAT(-protect_ptr->motor.i2t.i_limit, protect_ptr->motor.i2t.i_limit, vars_ptr->i_cmd_ext);
     vars_ptr->i_cmd_int = RateLimit(params_ptr->sys.rate_lim.i_cmd * params_ptr->sys.samp.ts1, vars_ptr->i_cmd_prot, vars_ptr->i_cmd_int);
@@ -1446,6 +1546,19 @@ static void ConditionCheck(MOTOR_t *motor_ptr)
             {
                 next = Current_OL;
             }
+            else if(Mode(params_ptr,Position_Mode_FOC_Encoder_Align_Startup))
+            {
+				if(params_ptr->ctrl.align.time == 0)
+				{
+					sm_ptr->vars.speed_reset_required = true;
+                    next = Position_CL; 
+				}
+				else 
+				{
+					next = Align;
+				}
+
+			}
 #elif defined(CTRL_METHOD_SFO)
             if (cmd_above_thresh && Mode(params_ptr,Profiler_Mode))
             {
@@ -1562,7 +1675,12 @@ static void ConditionCheck(MOTOR_t *motor_ptr)
             else if ((w_cmd_ext_above_thresh_high && Mode(params_ptr,Speed_Mode_FOC_Sensorless_Align_Startup)) || (w_cmd_ext_above_thresh_low && Mode(params_ptr,Speed_Mode_FOC_Encoder_Align_Startup)))
             {
                 sm_ptr->vars.speed_reset_required = (Mode(params_ptr,Speed_Mode_FOC_Sensorless_Align_Startup) == true);
-                next = Speed_CL; // S061987
+                next = Speed_CL; 
+            }
+            else if (Mode(params_ptr,Position_Mode_FOC_Encoder_Align_Startup))
+            {
+                sm_ptr->vars.speed_reset_required = true;
+                next = Position_CL; 
             }
         }
         break;
@@ -1940,6 +2058,19 @@ static void ConditionCheck(MOTOR_t *motor_ptr)
         }
         break;
 #endif
+#if defined(CTRL_METHOD_RFO)
+    case Position_CL:
+        if (!vars_ptr->en)
+        {
+            next = Init;
+        }
+        else if (fault_trigger)
+        {
+            next = Fault;
+        }
+
+        break;
+#endif
     case Fault:
     	if(sm_ptr->vars.fault.clr_success)
         {
@@ -1982,12 +2113,13 @@ void STATE_MACHINE_Init()
         motor[motor_ins].sm_ptr->states[Prof_Finished]    = (STATE_t){ &MotorProfEntry,     &MotorProfExit,        &MotorProfISR0,         &EmptyFcn       };
 #endif
 #if defined(CTRL_METHOD_SFO)
-        motor[motor_ins].sm_ptr->states[Torque_CL]        = (STATE_t){ &TorqueCLEntry,		&EmptyFcn,			    &TorqueCLISR0,		    &TorqueCLISR1       };
+        motor[motor_ins].sm_ptr->states[Torque_CL]        = (STATE_t){ &TorqueCLEntry,		&EmptyFcn,			    &TorqueCLISR0,		    &TorqueCLISR1  };
 #elif defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_TBC)
-        motor[motor_ins].sm_ptr->states[Current_CL]       = (STATE_t){ &CurrentCLEntry,		&EmptyFcn,			    &CurrentCLISR0,		    &CurrentCLISR1       };
+        motor[motor_ins].sm_ptr->states[Current_CL]       = (STATE_t){ &CurrentCLEntry,		&EmptyFcn,			    &CurrentCLISR0,		    &CurrentCLISR1 };
 #endif
 #if defined(CTRL_METHOD_RFO)
-        motor[motor_ins].sm_ptr->states[Current_OL]       = (STATE_t){ &CurrentOLEntry,		&CurrentOLExit,		    &CurrentOLISR0,		    &CurrentOLISR1       };
+        motor[motor_ins].sm_ptr->states[Current_OL]       = (STATE_t){ &CurrentOLEntry,		&CurrentOLExit,		    &CurrentOLISR0,		    &CurrentOLISR1  };
+        motor[motor_ins].sm_ptr->states[Position_CL]      = (STATE_t){ &PositionCLEntry,    &EmptyFcn,              &PositionCLISR0,        &PositionCLISR1 };
 #endif
 
         motor[motor_ins].sm_ptr->current = Init;

@@ -85,9 +85,11 @@
 #define TWO_OVER_PI				(0.636619772367581f)
 #define THREE_OVER_PI			(0.954929658551372f)
 #define SIX_OVER_PI				(1.909859317102744f)
+#define EPSILON                 (1.0E-9f)
 
 #define SCALE_PI_TO_INT32	((float)(INT32_MAX) / PI)
 #define SCALE_INT32_TO_DEG	(180.0f / (float)(INT32_MAX))
+#define SCALE_INT32_TO_PI	(PI / (float)(INT32_MAX))
 
 #define LUT_1D_N			(7)
 #define LUT_1D_WIDTH		(1<<LUT_1D_N)
@@ -156,6 +158,7 @@
 
 #define MOTOR_CTRL_MOTOR0_ENABLED  (1U)  /*Always true, minimum one motor should configured*/
 #define MOTOR_CTRL_MOTOR1_ENABLED  (MOTOR_CTRL_NO_OF_MOTOR >1)
+
 
 #pragma pack(push,4)
 
@@ -417,5 +420,7 @@ bool DebounceFiltIsClear(TIMER_t* timer);
 void LinearRegressionReset(LIN_REG_t* lin_reg);
 void LinearRegressionAddDataPoint(LIN_REG_t* lin_reg, const float x, const float y);
 void LinearRegressionProcessData(LIN_REG_t* lin_reg);
+
+// Gallois form (modular form) PRBS generation
 void PseudoRandBinaryInit(PRBS_t* prbs, const uint8_t order);
 bool PseudoRandBinaryGen(PRBS_t* prbs);
