@@ -1,52 +1,84 @@
 /*******************************************************************************
-* Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
-* an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
-*
-* This software, including source code, documentation and related
-* materials ("Software") is owned by Cypress Semiconductor Corporation
-* or one of its affiliates ("Cypress") and is protected by and subject to
-* worldwide patent protection (United States and foreign),
-* United States copyright laws and international treaty provisions.
-* Therefore, you may use this Software only as provided in the license
-* agreement accompanying the software package from which you
-* obtained this Software ("EULA").
-* If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
-* non-transferable license to copy, modify, and compile the Software
-* source code solely for use in connection with Cypress's
-* integrated circuit products.  Any reproduction, modification, translation,
-* compilation, or representation of this Software except as specified
-* above is prohibited without the express written permission of Cypress.
-*
-* Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
-* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
-* reserves the right to make changes to the Software without notice. Cypress
-* does not assume any liability arising out of the application or use of the
-* Software or any product or circuit described in the Software. Cypress does
-* not authorize its products for use in any products where a malfunction or
-* failure of the Cypress product may reasonably be expected to result in
-* significant property damage, injury or death ("High Risk Product"). By
-* including Cypress's product in a High Risk Product, the manufacturer
-* of such system or application assumes all risk of such use and in doing
-* so agrees to indemnify Cypress against all liability.
-*******************************************************************************/
+ * Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
+ *
+ * This software, including source code, documentation and related
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
+ * worldwide patent protection (United States and foreign),
+ * United States copyright laws and international treaty provisions.
+ * Therefore, you may use this Software only as provided in the license
+ * agreement accompanying the software package from which you
+ * obtained this Software ("EULA").
+ * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
+ * non-transferable license to copy, modify, and compile the Software
+ * source code solely for use in connection with Cypress's
+ * integrated circuit products.  Any reproduction, modification, translation,
+ * compilation, or representation of this Software except as specified
+ * above is prohibited without the express written permission of Cypress.
+ *
+ * Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
+ * reserves the right to make changes to the Software without notice. Cypress
+ * does not assume any liability arising out of the application or use of the
+ * Software or any product or circuit described in the Software. Cypress does
+ * not authorize its products for use in any products where a malfunction or
+ * failure of the Cypress product may reasonably be expected to result in
+ * significant property damage, injury or death ("High Risk Product"). By
+ * including Cypress's product in a High Risk Product, the manufacturer
+ * of such system or application assumes all risk of such use and in doing
+ * so agrees to indemnify Cypress against all liability.
+ *******************************************************************************/
+
+/**
+ * @file SpeedCtrl.h
+ * @brief Speed controller with PI and feed-forward compensation
+ *
+ * Implements a speed control loop using a PI controller with feed-forward terms
+ * for inertia, friction, and viscous damping compensation.
+ */
 
 #pragma once
 
 #include "General.h"
 
+/**
+ * @brief Speed controller structure
+ *
+ * Contains feed-forward compensation terms and PI controller for speed regulation.
+ */
 typedef struct
 {
-    float ff_inertia;
-    float ff_friction;
-    float ff_viscous;
-    float ff_total;
+    float ff_inertia;  /**< Inertia feed-forward compensation */
+    float ff_friction; /**< Friction feed-forward compensation */
+    float ff_viscous;  /**< Viscous damping feed-forward compensation */
+    float ff_total;    /**< Total feed-forward (sum of all FF terms) */
 
-    PI_t pi;
+    PI_t pi; /**< PI controller for speed regulation */
 } SPEED_CTRL_t;
 
+/**
+ * @brief Initialize speed controller
+ * @param motor_ptr Pointer to motor instance
+ */
 void SPEED_CTRL_Init(MOTOR_t *motor_ptr);
-void SPEED_CTRL_Reset(MOTOR_t *motor_ptr);
-void SPEED_CTRL_RunISR1(MOTOR_t *motor_ptr);
-void SPEED_CTRL_IntegBackCalc(MOTOR_t *motor_ptr,const float cmd); // cmd = i_cmd_spd or T_cmd_spd
 
+/**
+ * @brief Reset speed controller state
+ * @param motor_ptr Pointer to motor instance
+ */
+void SPEED_CTRL_Reset(MOTOR_t *motor_ptr);
+
+/**
+ * @brief Execute speed controller in ISR (slow control loop)
+ * @param motor_ptr Pointer to motor instance
+ */
+void SPEED_CTRL_RunISR1(MOTOR_t *motor_ptr);
+
+/**
+ * @brief Perform integrator back-calculation for anti-windup
+ * @param motor_ptr Pointer to motor instance
+ * @param cmd Command value (i_cmd_spd or T_cmd_spd depending on control method)
+ */
+void SPEED_CTRL_IntegBackCalc(MOTOR_t *motor_ptr, const float cmd);

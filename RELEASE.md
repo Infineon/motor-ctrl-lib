@@ -1,4 +1,4 @@
-# ModusToolbox&trade; Motor Control Library 3.1
+# ModusToolbox&trade; Motor Control Library 3.2
 
 Motor control library provides implementation of motor control algorithm to various control methods, control types and different motors. 
 
@@ -11,7 +11,7 @@ Below table provides details of the different control type, controlled entity, f
 | Control Type      | Controlled Entity | Feedback Type | Start up Method          |
 |:----------------- |:----------------- |:------------- |:------------------------ |
 | Open Loop         | Voltage           | N.A.          | N.A.                     |
-| Open Loop in RFO  | Current           | N.A		    | N.A				       |
+| Open Loop in RFO  | Current           | N.A           | N.A                      |
 | FOC in RFO        | Current           | Sensorless    | Rotor Pre-Alignment      |
 | FOC in RFO        | Current           | Sensorless    | Six Pulse Injection      |
 | FOC in RFO        | Current           | Sensorless    | High Frequency Injection |
@@ -28,8 +28,8 @@ Below table provides details of the different control type, controlled entity, f
 | FOC in RFO or SFO | Speed             | Sensorless    | Six Pulse Injection      |
 | FOC in RFO or SFO | Speed             | Sensorless    | High Frequency Injection |
 | FOC in RFO or SFO | Speed             | Sensorless    | Open-Loop Volt/Hz        |
-| FOC in RFO	    | Speed             | Sensorless    | Open-Loop Current        |
-| FOC in RFO        | Speed             | Encoder       | Rotor Pre-Alignment      |
+| FOC in RFO        | Speed             | Sensorless    | Open-Loop Current        |
+| FOC in RFO*       | Speed             | Encoder       | Rotor Pre-Alignment      |
 | FOC in RFO        | Speed             | Hall Sensor   | N.A.                     |
 | FOC in RFO*       | Position          | Encoder       | Rotor Pre-Alignment      |
 | TBC in BC         | Speed             | Hall Sensor   | N.A.                     |
@@ -39,12 +39,26 @@ Below table provides details of the different control type, controlled entity, f
 
 ### What Changed?
 
+Motor Control library : V3.2.0
+
+* Added Phase Shift Pulse Width Modulation for Single Shunt current measurement
+* Catch free-running motor functionality added :  Zero current control and Direct Bemf measurement
+* 2-Phase current measurement support added
+* Periodic fault retry mechanism added for potentiometer commands
+* Double align method implemented in align state
+* Parameter programming issue in fault state fixed
+* Bootstrap startup charging per phase at a time has been added
+* Phase loss detection added
+* Dead time configuration via parameter support added
+
 Motor Control library : V3.1.0 
+
 * Position Control support added
 * Added separate ramp rate configuration for V/F Open-Loop mode
 * Added square wave based HFI startup method 
 
 Motor Control library : V3.0.0 
+
 * Multiple motor driver support 
 * Current control based startup method
 * Speed control loop code execution, changed from ISR0 to ISR1

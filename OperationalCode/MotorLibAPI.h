@@ -31,58 +31,55 @@
  * so agrees to indemnify Cypress against all liability.
  *******************************************************************************/
 
-/**
- * @file PLL.h
- * @brief Phase-locked loop for position and speed tracking
- *
- * Implements a PLL for tracking rotor position and speed from flux linkage estimates.
- */
-
 #pragma once
+#include "Controller.h"
 
-#include "Params.h"
+// Motor Library Interface APIs
+// These APIs are intended for use by the application layer to configure
+// motor control behavior at runtime.
 
 /**
- * @brief Phase-locked loop structure
+ * @brief Enable or disable the motor drive
  *
- * Contains all state variables and parameters for PLL-based position and speed tracking.
+ * When disabled, the state machine will not start the drive.
+ * Must be called after STATE_MACHINE_Init.
+ *
+ * @param motor_ptr Pointer to the motor instance
+ * @param en        True to enable the drive, false to disable
  */
-typedef struct
+static inline void MOTOR_CTRL_SetDriveEnable(MOTOR_t *motor_ptr, bool en)
 {
-    float kp;         /**< Proportional gain */
-    float ki;         /**< Integral gain */
-    ELEC_t w_max;     /**< Maximum speed limit */
-    ELEC_t th_offset; /**< Angle offset compensation */
-    float ts;         /**< Sampling time */
-
-    PARK_t est;      /**< Park transform for estimated position */
-    AB_t input_prev; /**< Previous input (alpha-beta) */
-    float error;     /**< Position error signal */
-    float mag;       /**< Input magnitude */
-    ELEC_t w_filt;   /**< Filtered speed (integrator term) */
-    ELEC_t w;        /**< Speed estimate */
-    ELEC_t th;       /**< Position estimate */
-} PLL_t;
+    motor_ptr->vars_ptr->en = en;
+}
 
 /**
- * @brief Initialize PLL
- * @param pll Pointer to PLL structure
- * @param params Pointer to PLL parameters
- * @param ts Sampling time
+ * @brief Assign fault bits exclusively to one reaction type
+ *
+ * Clears the specified fault bits from all reaction masks, then assigns them
+ * to the chosen reaction, ensuring each fault maps to exactly one reaction.
+ * Setting @p reaction = No_Reaction removes the fault(s) from all active masks.
+ *
+ * @note Must be called AFTER STATE_MACHINE_Init / FAULT_PROTECT_Init, as
+ *       FAULT_PROTECT_Init overwrites the react_mask with defaults on first call.
+ *
+ * @param motor_ptr Pointer to the motor instance
+ * @param reaction  Target reaction type (No_Reaction, High_Z, Short_Motor)
+ * @param fault     FAULT_FLAGS_t with the desired fault bit(s) set
  */
-void PLL_Init(PLL_t *pll, PLL_PARAMS_t *params, const float ts);
+static inline void MOTOR_CTRL_SetFaultReactMask(MOTOR_t *motor_ptr, FAULT_REACTION_t reaction, FAULT_FLAGS_t fault)
+{
+    FAULTS_t *faults_ptr = motor_ptr->faults_ptr;
 
-/**
- * @brief Reset PLL state
- * @param pll Pointer to PLL structure
- * @param w0 Initial speed estimate
- * @param th0 Initial position estimate
- */
-void PLL_Reset(PLL_t *pll, const ELEC_t w0, const ELEC_t th0);
+    if (reaction < Num_Reactions)
+    {
+        // Clear the fault bits from all reaction masks
+        faults_ptr->react_mask[No_Reaction].all &= ~fault.all;
+        faults_ptr->react_mask[High_Z].all &= ~fault.all;
+        faults_ptr->react_mask[Short_Motor].all &= ~fault.all;
 
-/**
- * @brief Run PLL algorithm
- * @param pll Pointer to PLL structure
- * @param input Pointer to input signal (alpha~sin, beta~cos)
- */
-void PLL_Run(PLL_t *pll, const AB_t *input);
+        // Assign exclusively to the requested reaction.
+        // When reaction == No_Reaction, the fault bits are tracked in react_mask[No_Reaction]
+        // to record explicitly disabled faults, while remaining cleared from all active masks.
+        faults_ptr->react_mask[reaction].all |= fault.all;
+    }
+}

@@ -1,51 +1,75 @@
 /*******************************************************************************
-* Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
-* an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
-*
-* This software, including source code, documentation and related
-* materials ("Software") is owned by Cypress Semiconductor Corporation
-* or one of its affiliates ("Cypress") and is protected by and subject to
-* worldwide patent protection (United States and foreign),
-* United States copyright laws and international treaty provisions.
-* Therefore, you may use this Software only as provided in the license
-* agreement accompanying the software package from which you
-* obtained this Software ("EULA").
-* If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
-* non-transferable license to copy, modify, and compile the Software
-* source code solely for use in connection with Cypress's
-* integrated circuit products.  Any reproduction, modification, translation,
-* compilation, or representation of this Software except as specified
-* above is prohibited without the express written permission of Cypress.
-*
-* Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
-* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
-* reserves the right to make changes to the Software without notice. Cypress
-* does not assume any liability arising out of the application or use of the
-* Software or any product or circuit described in the Software. Cypress does
-* not authorize its products for use in any products where a malfunction or
-* failure of the Cypress product may reasonably be expected to result in
-* significant property damage, injury or death ("High Risk Product"). By
-* including Cypress's product in a High Risk Product, the manufacturer
-* of such system or application assumes all risk of such use and in doing
-* so agrees to indemnify Cypress against all liability.
-*******************************************************************************/
+ * Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
+ *
+ * This software, including source code, documentation and related
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
+ * worldwide patent protection (United States and foreign),
+ * United States copyright laws and international treaty provisions.
+ * Therefore, you may use this Software only as provided in the license
+ * agreement accompanying the software package from which you
+ * obtained this Software ("EULA").
+ * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
+ * non-transferable license to copy, modify, and compile the Software
+ * source code solely for use in connection with Cypress's
+ * integrated circuit products.  Any reproduction, modification, translation,
+ * compilation, or representation of this Software except as specified
+ * above is prohibited without the express written permission of Cypress.
+ *
+ * Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
+ * reserves the right to make changes to the Software without notice. Cypress
+ * does not assume any liability arising out of the application or use of the
+ * Software or any product or circuit described in the Software. Cypress does
+ * not authorize its products for use in any products where a malfunction or
+ * failure of the Cypress product may reasonably be expected to result in
+ * significant property damage, injury or death ("High Risk Product"). By
+ * including Cypress's product in a High Risk Product, the manufacturer
+ * of such system or application assumes all risk of such use and in doing
+ * so agrees to indemnify Cypress against all liability.
+ *******************************************************************************/
 
+/**
+ * @file BlockComm.c
+ * @brief Block commutation implementation
+ *
+ * Implements block (trapezoidal/six-step) commutation for BLDC motors,
+ * including Hall signal processing and phase switching logic.
+ */
 
 #include "Controller.h"
 
 #if defined(CTRL_METHOD_TBC)
 
-#define HIZ             (-1.0f)         // In this context, -1.0f is used to indicate HIZ in LUTs
-#define IS_HIGHZ(x)     ((x)==(HIZ))  
+#define HIZ (-1.0f)                                                               /**< High-Z (high impedance) indicator in lookup tables */
+#define IS_HIGHZ(x) ((x) == (HIZ)) /**< Check if value represents high-Z state */ /**< Check if value represents high-Z state */
 
+/**
+ * @brief Width of the inverse angle capture table
+ */
 #define INV_ANG_CAP_TABLE_WIDTH 12U
+/**
+ * @brief Inverse angle capture table for Hall signal generation
+ *
+ * Maps rotor angle ranges (shifted by +180°) to Hall signal combinations.
+ * Each entry is a 3-bit value representing UVW Hall states.
+ */
 uint32_t Inv_Angle_Capture_Table[INV_ANG_CAP_TABLE_WIDTH] = \
 // Angle input (deg):       (-180)  (-150)  (-120)  (-90)   (-60)   (-30)   (0)     (+30)   (+60)   (+90)   (+120)  (+150)  (+180)
 // Angle input + 180 deg:   (0)     (+30)   (+60)   (+90)   (+120)  (+150)  (+180)  (+210)  (+240)  (+270)  (+300)  (+330)  (+360)
 // Table indices:           (0)     (1)     (2)     (3)     (4)     (5)     (6)     (7)     (8)     (9)     (10)    (11)    (12)
                         {   0b110,  0b110,  0b100,  0b100,  0b101,  0b101,  0b001,  0b001,  0b011,  0b011,  0b010,  0b010,  };
 
+/**
+ * @brief Compute equivalent Hall signal from rotor angle
+ *
+ * Converts electrical angle to the corresponding Hall sensor signal pattern.
+ *
+ * @param th_r Rotor angle (must be wrapped to [-π, π))
+ * @return Equivalent Hall sensor signal (3-bit UVW pattern)
+ */
 UVW_SIGNAL_t BLOCK_COMM_EquivHallSignal(ELEC_t th_r)
 {
     UVW_SIGNAL_t equiv_hall;
@@ -55,21 +79,34 @@ UVW_SIGNAL_t BLOCK_COMM_EquivHallSignal(ELEC_t th_r)
     return equiv_hall;
 }
 
+/**
+ * @brief Phase duty cycle lookup tables
+ *
+ * Define the switching states for each phase (U, V, W) based on Hall signal.
+ * HIZ indicates high-impedance state, 1.0f = high-side ON, 0.0f = low-side ON.
+ */
 // Hall Signal (WVU):	    0b101   ->  0b001   ->  0b011   ->  0b010   ->  0b110   ->  0b100
 // Indices:                 5U      ->  1U      ->  3U      ->  2U      ->  6U      ->  4U
 // Phase U:	                1.0f    ->  1.0f    ->  HIZ     ->  0.0f    ->  0.0f    ->  HIZ
 // Phase V:	                0.0f    ->  HIZ     ->  1.0f    ->  1.0f    ->  HIZ     ->  0.0f
 // Phase W:	                HIZ     ->  0.0f    ->  0.0f    ->  HIZ     ->  1.0f    ->  1.0f
 //                                                  0U      1U      2U      3U      4U      5U      6U      7U
-float Phase_U_Table[HALL_SIGNAL_PERMUTATIONS] = {  HIZ,    1.0f,   0.0f,   HIZ,    HIZ,    1.0f,   0.0f,   HIZ };
-float Phase_V_Table[HALL_SIGNAL_PERMUTATIONS] = {  HIZ,    HIZ,    1.0f,   1.0f,   0.0f,   0.0f,   HIZ,    HIZ };
-float Phase_W_Table[HALL_SIGNAL_PERMUTATIONS] = {  HIZ,    0.0f,   HIZ,    0.0f,   1.0f,   HIZ,    1.0f,   HIZ };
+float Phase_U_Table[HALL_SIGNAL_PERMUTATIONS] = {HIZ, 1.0f, 0.0f, HIZ, HIZ, 1.0f, 0.0f, HIZ};
+float Phase_V_Table[HALL_SIGNAL_PERMUTATIONS] = {HIZ, HIZ, 1.0f, 1.0f, 0.0f, 0.0f, HIZ, HIZ};
+float Phase_W_Table[HALL_SIGNAL_PERMUTATIONS] = {HIZ, 0.0f, HIZ, 0.0f, 1.0f, HIZ, 1.0f, HIZ};
 
+/**
+ * @brief Execute block commutation current sampling (ISR)
+ *
+ * Calculates the stator current based on phase currents and high-Z states.
+ *
+ * @param motor_ptr Pointer to motor instance
+ */
 RAMFUNC_BEGIN
 void BLOCK_COMM_RunCurrSampISR0(MOTOR_t *motor_ptr)
 {
-	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
-	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_t *ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
 
     vars_ptr->i_s_fb =
         ((ctrl_ptr->block_comm.high_z_state.u) ? 0.0f : (ctrl_ptr->block_comm.i_uvw_coeff.u - 0.5f) * vars_ptr->i_uvw_fb.u) +
@@ -80,11 +117,19 @@ void BLOCK_COMM_RunCurrSampISR0(MOTOR_t *motor_ptr)
 }
 RAMFUNC_END
 
+/**
+ * @brief Initialize block commutation controller
+ *
+ * Sets initial Hall signal and high-Z states. Initializes sampling duty cycles
+ * for single-shunt configurations.
+ *
+ * @param motor_ptr Pointer to motor instance
+ */
 void BLOCK_COMM_Init(MOTOR_t *motor_ptr)
 {
-	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
-	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
-	PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    CTRL_t *ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
 
     ctrl_ptr->block_comm.hall_equiv.uvw = 0b100;
     ctrl_ptr->block_comm.high_z_state.uvw = 0b000;
@@ -97,6 +142,15 @@ void BLOCK_COMM_Init(MOTOR_t *motor_ptr)
     }
 }
 
+/**
+ * @brief Calculate duty cycle for a phase based on high-Z state and direction
+ *
+ * @param high_z True if phase is in high-impedance state
+ * @param dir True for positive voltage direction
+ * @param i_coeff Current coefficient (0.0, 1.0, or HIZ)
+ * @param d_ref Reference duty cycle
+ * @return Calculated duty cycle for the phase
+ */
 static inline float CalcDutyCycle(bool high_z, bool dir, float i_coeff, float d_ref)
 {
 #if defined(REGRESSION_TEST)
@@ -109,22 +163,33 @@ static inline float CalcDutyCycle(bool high_z, bool dir, float i_coeff, float d_
         return High_Z_Duty_Cycle;
     }
     else if (dir)
-    {   // positive direction
+    { // positive direction
         return (i_coeff * d_ref);
     }
     else
-    {   // negative direction
+    { // negative direction
         return ((1.0f - i_coeff) * d_ref);
     }
 }
 
+/**
+ * @brief Execute block commutation voltage modulation (ISR)
+ *
+ * Main control loop for block commutation:
+ * - Determines Hall signal (actual or computed)
+ * - Updates phase coefficients from lookup tables
+ * - Calculates duty cycles for each phase
+ * - Tracks high-Z state transitions
+ *
+ * @param motor_ptr Pointer to motor instance
+ */
 RAMFUNC_BEGIN
 void BLOCK_COMM_RunVoltModISR0(MOTOR_t *motor_ptr)
 {
-	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
-	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
-	PARAMS_t* params_ptr = motor_ptr->params_ptr;
-	HALL_SENS_t* hall_ptr = motor_ptr->hall_ptr;
+    CTRL_t *ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    HALL_SENS_t *hall_ptr = motor_ptr->hall_ptr;
 
     ctrl_ptr->block_comm.hall_equiv = (params_ptr->sys.fb.hall.block_comm_offset_comp == En) ? BLOCK_COMM_EquivHallSignal(hall_ptr->track_loop.th_r_est) : hall_ptr->signal;
 
@@ -149,6 +214,7 @@ void BLOCK_COMM_RunVoltModISR0(MOTOR_t *motor_ptr)
     vars_ptr->d_uvw_cmd.u = CalcDutyCycle(ctrl_ptr->block_comm.high_z_state.u, ctrl_ptr->block_comm.v_s_sign, ctrl_ptr->block_comm.i_uvw_coeff.u, ctrl_ptr->block_comm.d_cmd);
     vars_ptr->d_uvw_cmd.v = CalcDutyCycle(ctrl_ptr->block_comm.high_z_state.v, ctrl_ptr->block_comm.v_s_sign, ctrl_ptr->block_comm.i_uvw_coeff.v, ctrl_ptr->block_comm.d_cmd);
     vars_ptr->d_uvw_cmd.w = CalcDutyCycle(ctrl_ptr->block_comm.high_z_state.w, ctrl_ptr->block_comm.v_s_sign, ctrl_ptr->block_comm.i_uvw_coeff.w, ctrl_ptr->block_comm.d_cmd);
+    vars_ptr->d_uvw_cmd_fall = vars_ptr->d_uvw_cmd;
 
     ctrl_ptr->block_comm.enter_high_z_flag.u = RISE_EDGE(ctrl_ptr->block_comm.high_z_state_prev.u, ctrl_ptr->block_comm.high_z_state.u) ? true : false;
     ctrl_ptr->block_comm.exit_high_z_flag.u = FALL_EDGE(ctrl_ptr->block_comm.high_z_state_prev.u, ctrl_ptr->block_comm.high_z_state.u) ? true : false;

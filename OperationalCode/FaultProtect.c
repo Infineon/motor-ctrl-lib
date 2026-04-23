@@ -1,97 +1,187 @@
 /*******************************************************************************
-* Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
-* an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
-*
-* This software, including source code, documentation and related
-* materials ("Software") is owned by Cypress Semiconductor Corporation
-* or one of its affiliates ("Cypress") and is protected by and subject to
-* worldwide patent protection (United States and foreign),
-* United States copyright laws and international treaty provisions.
-* Therefore, you may use this Software only as provided in the license
-* agreement accompanying the software package from which you
-* obtained this Software ("EULA").
-* If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
-* non-transferable license to copy, modify, and compile the Software
-* source code solely for use in connection with Cypress's
-* integrated circuit products.  Any reproduction, modification, translation,
-* compilation, or representation of this Software except as specified
-* above is prohibited without the express written permission of Cypress.
-*
-* Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
-* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
-* reserves the right to make changes to the Software without notice. Cypress
-* does not assume any liability arising out of the application or use of the
-* Software or any product or circuit described in the Software. Cypress does
-* not authorize its products for use in any products where a malfunction or
-* failure of the Cypress product may reasonably be expected to result in
-* significant property damage, injury or death ("High Risk Product"). By
-* including Cypress's product in a High Risk Product, the manufacturer
-* of such system or application assumes all risk of such use and in doing
-* so agrees to indemnify Cypress against all liability.
-*******************************************************************************/
+ * Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
+ *
+ * This software, including source code, documentation and related
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
+ * worldwide patent protection (United States and foreign),
+ * United States copyright laws and international treaty provisions.
+ * Therefore, you may use this Software only as provided in the license
+ * agreement accompanying the software package from which you
+ * obtained this Software ("EULA").
+ * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
+ * non-transferable license to copy, modify, and compile the Software
+ * source code solely for use in connection with Cypress's
+ * integrated circuit products.  Any reproduction, modification, translation,
+ * compilation, or representation of this Software except as specified
+ * above is prohibited without the express written permission of Cypress.
+ *
+ * Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
+ * reserves the right to make changes to the Software without notice. Cypress
+ * does not assume any liability arising out of the application or use of the
+ * Software or any product or circuit described in the Software. Cypress does
+ * not authorize its products for use in any products where a malfunction or
+ * failure of the Cypress product may reasonably be expected to result in
+ * significant property damage, injury or death ("High Risk Product"). By
+ * including Cypress's product in a High Risk Product, the manufacturer
+ * of such system or application assumes all risk of such use and in doing
+ * so agrees to indemnify Cypress against all liability.
+ *******************************************************************************/
 
+/**
+ * @file FaultProtect.c
+ * @brief Fault detection and protection system implementation
+ *
+ * Implements comprehensive fault detection including software-detected faults
+ * (over-current, over-temperature, over/under-voltage, over-speed, phase loss)
+ * and hardware-detected faults (gate driver, power supply, etc.). Manages motor
+ * thermal protection (I2T) and implements fault reactions.
+ */
 
 #include "Controller.h"
 
-FAULTS_t faults[MOTOR_CTRL_NO_OF_MOTOR]= { 0 };;
-PROTECT_t protect[MOTOR_CTRL_NO_OF_MOTOR]= { 0 };;
+FAULTS_t faults[MOTOR_CTRL_NO_OF_MOTOR] = {0};
+PROTECT_t protect[MOTOR_CTRL_NO_OF_MOTOR] = {0};
 
+/**
+ * @brief Detect phase loss fault (ISR1)
+ *
+ * Monitors phase currents to detect phase loss conditions. Compares average
+ * phase currents against each other and against a zero current threshold.
+ *
+ * @param motor_ptr Pointer to motor structure
+ * @return true if phase loss detected, false otherwise
+ */
+static inline bool phaseloss_fault_ISR1(MOTOR_t *motor_ptr)
+{
+    FAULTS_t *faults_ptr = motor_ptr->faults_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+
+    float min_current = 0;
+    bool ret_val = 0;
+    float zero_current_threshold = params_ptr->sys.faults.phase_loss.zero_current_thres; // minimum acceptable phase current
+
+    // Advance the detection window timer
+    StopWatchRun(&faults_ptr->phase_loss.timer);
+
+    // Low-pass filter the absolute phase currents to get per-phase averages
+    faults_ptr->phase_loss.i_uvw_avg.u += (ABS(vars_ptr->i_uvw_fb.u) - faults_ptr->phase_loss.i_uvw_avg.u) * faults_ptr->phase_loss.filter_coeff;
+    faults_ptr->phase_loss.i_uvw_avg.v += (ABS(vars_ptr->i_uvw_fb.v) - faults_ptr->phase_loss.i_uvw_avg.v) * faults_ptr->phase_loss.filter_coeff;
+    faults_ptr->phase_loss.i_uvw_avg.w += (ABS(vars_ptr->i_uvw_fb.w) - faults_ptr->phase_loss.i_uvw_avg.w) * faults_ptr->phase_loss.filter_coeff;
+
+    // Evaluate fault conditions once per detection window
+    if (StopWatchIsDone(&faults_ptr->phase_loss.timer))
+    {
+        StopWatchReset(&faults_ptr->phase_loss.timer);
+
+        // Compute minimum phase current
+        min_current = (faults_ptr->phase_loss.i_uvw_avg.u + faults_ptr->phase_loss.i_uvw_avg.v + faults_ptr->phase_loss.i_uvw_avg.w) / 8;
+
+        // One phase loss: any phase average significantly below the mean
+        if ((faults_ptr->phase_loss.i_uvw_avg.u < min_current) || (faults_ptr->phase_loss.i_uvw_avg.v < min_current) || (faults_ptr->phase_loss.i_uvw_avg.w < min_current))
+        {
+            ret_val = 1; // Fault detected
+        }
+        // Two or three phase loss: any two-phase pair both below the zero-current threshold
+        if (((faults_ptr->phase_loss.i_uvw_avg.u < zero_current_threshold) && (faults_ptr->phase_loss.i_uvw_avg.v < zero_current_threshold))     // UV
+            || ((faults_ptr->phase_loss.i_uvw_avg.v < zero_current_threshold) && (faults_ptr->phase_loss.i_uvw_avg.w < zero_current_threshold))  // VW
+            || ((faults_ptr->phase_loss.i_uvw_avg.w < zero_current_threshold) && (faults_ptr->phase_loss.i_uvw_avg.u < zero_current_threshold))) // WU
+        {
+            ret_val = 1; // Fault detected
+        }
+    }
+    return (ret_val);
+}
+
+/**
+ * @brief Initialize fault and protection system
+ *
+ * Configures fault detection parameters, I2T thermal protection, phase loss detection,
+ * and fault reaction masks. Sets up which faults trigger which reactions (high-Z or motor short).
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 void FAULT_PROTECT_Init(MOTOR_t *motor_ptr)
 {
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
-    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
-    FAULTS_t* faults_ptr = motor_ptr->faults_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    PROTECT_t *protect_ptr = motor_ptr->protect_ptr;
+    FAULTS_t *faults_ptr = motor_ptr->faults_ptr;
     // Protections:
     // Motor I2T
     protect_ptr->motor.i2t.i_on = params_ptr->motor.i2t.on_level * params_ptr->motor.i_cont;
     protect_ptr->motor.i2t.i_off = params_ptr->motor.i2t.off_level * params_ptr->motor.i_cont;
     protect_ptr->motor.i2t.filt_coeff = params_ptr->sys.samp.ts0 / params_ptr->motor.i2t.therm_tau;
 
+    // Phase lose detection
+    faults_ptr->phase_loss.filter_coeff = params_ptr->sys.samp.ts1 / params_ptr->sys.faults.phase_loss.tau;
+    StopWatchInit(&faults_ptr->phase_loss.timer, params_ptr->sys.faults.phase_loss.tau, params_ptr->sys.samp.ts1);
+    faults_ptr->phase_loss.i_uvw_avg = UVW_Zero;
     // Faults:
     // Detection parameters:
     faults_ptr->vars.oc_thresh = params_ptr->sys.faults.oc_thresh * params_ptr->motor.i_cont;
     DebounceFiltInit(&faults_ptr->vars.vdc_ov_timer, params_ptr->sys.faults.vdc_time, params_ptr->sys.samp.ts1);
     DebounceFiltInit(&faults_ptr->vars.vdc_uv_timer, params_ptr->sys.faults.vdc_time, params_ptr->sys.samp.ts1);
     // Fault reaction bitmasks:
-    faults_ptr->react_mask[No_Reaction] = (FAULT_FLAGS_t){ 0U };
+    // Apply defaults if not already configured (e.g. first init).
+    // To override after init, use MOTOR_CTRL_SetFaultReactMask(), for example:
+    //   MOTOR_CTRL_SetFaultReactMask(&motor[0], No_Reaction,   (FAULT_FLAGS_t){ .sw.phase_loss = 1 }); // disable
+    //   phase_loss reaction MOTOR_CTRL_SetFaultReactMask(&motor[0], Short_Motor,   (FAULT_FLAGS_t){ .sw.ov_vdc = 1,
+    //   .sw.uv_vdc = 1 }); // move vdc faults to Short_Motor
+    if (!faults_ptr->react_mask_configured)
+    {
+        faults_ptr->react_mask[No_Reaction] = (FAULT_FLAGS_t){0U};
 
-    faults_ptr->react_mask[High_Z] = (FAULT_FLAGS_t){ 0U };
-    faults_ptr->react_mask[High_Z].sw.oc = 0b1;
-    faults_ptr->react_mask[High_Z].sw.ot_ps = 0b1;
-    faults_ptr->react_mask[High_Z].sw.brk = 0b1;
-    faults_ptr->react_mask[High_Z].sw.em_stop = 0b1;
-    faults_ptr->react_mask[High_Z].sw.encoder = 0b1;
-    faults_ptr->react_mask[High_Z].hw.cs_ocp = 0b111;
-    faults_ptr->react_mask[High_Z].hw.cp = 0b1;
-    faults_ptr->react_mask[High_Z].hw.dvdd_ocp = 0b1;
-    faults_ptr->react_mask[High_Z].hw.dvdd_uv = 0b1;
-    faults_ptr->react_mask[High_Z].hw.dvdd_ov = 0b1;
-    faults_ptr->react_mask[High_Z].hw.bk_ocp = 0b1;
-    faults_ptr->react_mask[High_Z].hw.ots = 0b1;
-    //faults_ptr->react_mask[High_Z].hw.otw = 1U;
-    faults_ptr->react_mask[High_Z].hw.rlock = 0b1;
-    faults_ptr->react_mask[High_Z].hw.wd = 0b1;
-    faults_ptr->react_mask[High_Z].hw.otp = 0b1;
+        faults_ptr->react_mask[High_Z] = (FAULT_FLAGS_t){0U};
+        faults_ptr->react_mask[High_Z].sw.oc = 0b1;
+        faults_ptr->react_mask[High_Z].sw.ot_ps = 0b1;
+        faults_ptr->react_mask[High_Z].sw.brk = 0b1;
+        faults_ptr->react_mask[High_Z].sw.em_stop = 0b1;
+        faults_ptr->react_mask[High_Z].sw.encoder = 0b1;
+        faults_ptr->react_mask[High_Z].sw.phase_loss = 0b1;
+        faults_ptr->react_mask[High_Z].hw.cs_ocp = 0b111;
+        faults_ptr->react_mask[High_Z].hw.cp = 0b1;
+        faults_ptr->react_mask[High_Z].hw.dvdd_ocp = 0b1;
+        faults_ptr->react_mask[High_Z].hw.dvdd_uv = 0b1;
+        faults_ptr->react_mask[High_Z].hw.dvdd_ov = 0b1;
+        faults_ptr->react_mask[High_Z].hw.bk_ocp = 0b1;
+        faults_ptr->react_mask[High_Z].hw.ots = 0b1;
+        // faults_ptr->react_mask[High_Z].hw.otw = 1U;
+        faults_ptr->react_mask[High_Z].hw.rlock = 0b1;
+        faults_ptr->react_mask[High_Z].hw.wd = 0b1;
+        faults_ptr->react_mask[High_Z].hw.otp = 0b1;
 
-    faults_ptr->react_mask[Short_Motor] = (FAULT_FLAGS_t){ 0U };
-    faults_ptr->react_mask[Short_Motor].sw.ov_vdc = 0b1;
-    faults_ptr->react_mask[Short_Motor].sw.uv_vdc = 0b1;
-    faults_ptr->react_mask[Short_Motor].sw.os = 0b1;
-    faults_ptr->react_mask[Short_Motor].sw.hall = 0b1;
-    faults_ptr->react_mask[Short_Motor].sw.params = 0b1;
+        faults_ptr->react_mask[Short_Motor] = (FAULT_FLAGS_t){0U};
+        faults_ptr->react_mask[Short_Motor].sw.ov_vdc = 0b1;
+        faults_ptr->react_mask[Short_Motor].sw.uv_vdc = 0b1;
+        faults_ptr->react_mask[Short_Motor].sw.os = 0b1;
+        faults_ptr->react_mask[Short_Motor].sw.hall = 0b1;
+        faults_ptr->react_mask[Short_Motor].sw.params = 0b1;
+
+        faults_ptr->react_mask_configured = true;
+    }
 
     // Unclearable faults bitmask:
-    faults_ptr->unclearable_mask = (FAULT_FLAGS_t){ 0U };
+    faults_ptr->unclearable_mask = (FAULT_FLAGS_t){0U};
     faults_ptr->unclearable_mask.sw.params = 0b1;
-
 }
 
+/**
+ * @brief Reset fault and protection system
+ *
+ * Clears all faults and resets protection states. Checks for unclearable parameter
+ * faults and sets motor I2T limits to initial values.
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 void FAULT_PROTECT_Reset(MOTOR_t *motor_ptr)
 {
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
-    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
-    FAULTS_t* faults_ptr = motor_ptr->faults_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    PROTECT_t *protect_ptr = motor_ptr->protect_ptr;
+    FAULTS_t *faults_ptr = motor_ptr->faults_ptr;
 
     // Clear all faults
     faults_ptr->flags.all = 0U;
@@ -113,41 +203,61 @@ void FAULT_PROTECT_Reset(MOTOR_t *motor_ptr)
 #if defined(CTRL_METHOD_SFO)
     protect_ptr->motor.T_lmt = params_ptr->motor.T_max;
 #endif
+    faults_ptr->phase_loss.i_uvw_avg = UVW_Zero;
 }
 
+/**
+ * @brief Run fault protection at fast rate (ISR0)
+ *
+ * Calculates motor current squared and applies thermal filtering for I2T protection.
+ * Executed at the fast control loop rate.
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 RAMFUNC_BEGIN
 void FAULT_PROTECT_RunISR0(MOTOR_t *motor_ptr)
 {
-    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
 #if defined(CTRL_METHOD_TBC)
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
 #endif
-    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
+    PROTECT_t *protect_ptr = motor_ptr->protect_ptr;
 
     // Motor I2T
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
-	vars_ptr->i_s_fb_sq = POW_TWO(vars_ptr->i_ab_fb_tot.alpha) + POW_TWO(vars_ptr->i_ab_fb_tot.beta);
+    vars_ptr->i_s_fb_sq = POW_TWO(vars_ptr->i_ab_fb_tot.alpha) + POW_TWO(vars_ptr->i_ab_fb_tot.beta);
 #elif defined(CTRL_METHOD_TBC)
     if (params_ptr->ctrl.mode == Volt_Mode_Open_Loop)
     {
-    	vars_ptr->i_s_fb_sq = POW_TWO(vars_ptr->i_ab_fb_tot.alpha) + POW_TWO(vars_ptr->i_ab_fb_tot.beta);
+        vars_ptr->i_s_fb_sq = POW_TWO(vars_ptr->i_ab_fb_tot.alpha) + POW_TWO(vars_ptr->i_ab_fb_tot.beta);
     }
     else
     {
-    	vars_ptr->i_s_fb_sq = POW_TWO(vars_ptr->i_s_fb);
+        vars_ptr->i_s_fb_sq = POW_TWO(vars_ptr->i_s_fb);
     }
 #endif
     protect_ptr->motor.i2t.i_sq_filt += (vars_ptr->i_s_fb_sq - protect_ptr->motor.i2t.i_sq_filt) * protect_ptr->motor.i2t.filt_coeff;
-
 }
 RAMFUNC_END
 
+/**
+ * @brief Run fault protection at slow rate (ISR1)
+ *
+ * Executes comprehensive fault detection:
+ * - Updates motor I2T thermal state and current limits
+ * - Detects over-current, over/under-voltage, over-temperature, over-speed
+ * - Checks for brake switch and emergency stop
+ * - Detects phase loss
+ * - Latches faults and determines appropriate reaction
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 void FAULT_PROTECT_RunISR1(MOTOR_t *motor_ptr)
 {
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
-    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
-    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
-	FAULTS_t* faults_ptr = motor_ptr->faults_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
+    PROTECT_t *protect_ptr = motor_ptr->protect_ptr;
+    FAULTS_t *faults_ptr = motor_ptr->faults_ptr;
 
     // Protections ..............................................................................................
     // Motor I2T
@@ -196,13 +306,19 @@ void FAULT_PROTECT_RunISR1(MOTOR_t *motor_ptr)
     faults_ptr->flags.sw.brk = vars_ptr->brk;
     faults_ptr->flags.sw.em_stop = vars_ptr->em_stop;
 
+    // Phase Lose fault
+    if (faults_ptr->phase_loss.enable)
+    {
+        faults_ptr->flags.sw.phase_loss = phaseloss_fault_ISR1(motor_ptr);
+    }
+
     // Fault Latching ...........................................................................................
     faults_ptr->flags_latched.all |= faults_ptr->flags.all;
 
     // Fault Reactions ..........................................................................................
     if (faults_ptr->flags_latched.all & faults_ptr->react_mask[Short_Motor].all)
     {
-        // Method indicated by params_ptr->sys.faults_ptr->short_method
+        // Method indicated by params_ptr->sys.faults.short_method
         faults_ptr->reaction = Short_Motor;
     }
     else if (faults_ptr->flags_latched.all & faults_ptr->react_mask[High_Z].all) // note that short condition is checked first
@@ -221,12 +337,19 @@ void FAULT_PROTECT_RunISR1(MOTOR_t *motor_ptr)
     vars_ptr->test[27] = protect_ptr->motor.T_lmt;
 #endif
 #endif
-
 }
 
+/**
+ * @brief Clear clearable faults
+ *
+ * Clears all faults except those marked as unclearable (e.g., parameter faults).
+ * Resets fault reaction to No_Reaction.
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 void FAULT_PROTECT_ClearFaults(MOTOR_t *motor_ptr)
 {
-	FAULTS_t* faults_ptr = motor_ptr->faults_ptr;
+    FAULTS_t *faults_ptr = motor_ptr->faults_ptr;
 
     faults_ptr->flags.all &= faults_ptr->unclearable_mask.all;
     faults_ptr->flags_latched.all &= faults_ptr->unclearable_mask.all;
@@ -234,12 +357,20 @@ void FAULT_PROTECT_ClearFaults(MOTOR_t *motor_ptr)
 }
 
 #if defined(CTRL_METHOD_SFO)
+/**
+ * @brief Run torque limit control (ISR1, SFO only)
+ *
+ * Implements sliding-mode current limiter for SFO by adjusting torque limit
+ * based on comparison between I2T current limit and actual current.
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 RAMFUNC_BEGIN
-void FAULT_PROTECT_RunTrqLimitCtrlISR1(MOTOR_t *motor_ptr)	// Sliding-mode current limiter in SFO
+void FAULT_PROTECT_RunTrqLimitCtrlISR1(MOTOR_t *motor_ptr) // Sliding-mode current limiter in SFO
 {
-	PARAMS_t* params_ptr = motor_ptr->params_ptr;
-    PROTECT_t* protect_ptr = motor_ptr->protect_ptr;
-	CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    PROTECT_t *protect_ptr = motor_ptr->protect_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
 
     float T_lmt = protect_ptr->motor.T_lmt + params_ptr->ctrl.trq.curr_lmt_ki * SIGN(POW_TWO(protect_ptr->motor.i2t.i_limit) - vars_ptr->i_s_fb_sq);
     protect_ptr->motor.T_lmt = SAT(0.0f, params_ptr->motor.T_max, T_lmt);

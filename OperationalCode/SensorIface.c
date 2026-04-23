@@ -1,92 +1,156 @@
 /*******************************************************************************
-* Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
-* an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
-*
-* This software, including source code, documentation and related
-* materials ("Software") is owned by Cypress Semiconductor Corporation
-* or one of its affiliates ("Cypress") and is protected by and subject to
-* worldwide patent protection (United States and foreign),
-* United States copyright laws and international treaty provisions.
-* Therefore, you may use this Software only as provided in the license
-* agreement accompanying the software package from which you
-* obtained this Software ("EULA").
-* If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
-* non-transferable license to copy, modify, and compile the Software
-* source code solely for use in connection with Cypress's
-* integrated circuit products.  Any reproduction, modification, translation,
-* compilation, or representation of this Software except as specified
-* above is prohibited without the express written permission of Cypress.
-*
-* Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
-* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
-* reserves the right to make changes to the Software without notice. Cypress
-* does not assume any liability arising out of the application or use of the
-* Software or any product or circuit described in the Software. Cypress does
-* not authorize its products for use in any products where a malfunction or
-* failure of the Cypress product may reasonably be expected to result in
-* significant property damage, injury or death ("High Risk Product"). By
-* including Cypress's product in a High Risk Product, the manufacturer
-* of such system or application assumes all risk of such use and in doing
-* so agrees to indemnify Cypress against all liability.
-*******************************************************************************/
+ * Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
+ *
+ * This software, including source code, documentation and related
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
+ * worldwide patent protection (United States and foreign),
+ * United States copyright laws and international treaty provisions.
+ * Therefore, you may use this Software only as provided in the license
+ * agreement accompanying the software package from which you
+ * obtained this Software ("EULA").
+ * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
+ * non-transferable license to copy, modify, and compile the Software
+ * source code solely for use in connection with Cypress's
+ * integrated circuit products.  Any reproduction, modification, translation,
+ * compilation, or representation of this Software except as specified
+ * above is prohibited without the express written permission of Cypress.
+ *
+ * Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
+ * reserves the right to make changes to the Software without notice. Cypress
+ * does not assume any liability arising out of the application or use of the
+ * Software or any product or circuit described in the Software. Cypress does
+ * not authorize its products for use in any products where a malfunction or
+ * failure of the Cypress product may reasonably be expected to result in
+ * significant property damage, injury or death ("High Risk Product"). By
+ * including Cypress's product in a High Risk Product, the manufacturer
+ * of such system or application assumes all risk of such use and in doing
+ * so agrees to indemnify Cypress against all liability.
+ *******************************************************************************/
 
+/**
+ * @file SensorIface.c
+ * @brief Sensor interface implementation
+ *
+ * Implements sensor interface with calibration, filtering, and coordinate transformations.
+ */
 
 #include "Controller.h"
 
+SENSOR_IFACE_t sensor_iface[MOTOR_CTRL_NO_OF_MOTOR] = {0};
 
-SENSOR_IFACE_t sensor_iface[MOTOR_CTRL_NO_OF_MOTOR] = { 0 };
-
-#if !defined(PC_TEST)  // TBD: REGRESSION_TEST & SIL_TEST for single shunt
-#define SHUNT_TYPE  (params_ptr->sys.analog.shunt.type)
+#if !defined(PC_TEST) // TBD: REGRESSION_TEST for single shunt
+#define SHUNT_TYPE (params_ptr->sys.analog.shunt.type)
 #else
-#define SHUNT_TYPE  (Three_Shunt)
+#define SHUNT_TYPE (Three_Shunt)
 #endif
 
 #if !defined(MOTOR_CTRL_DISABLE_ADDON_FEATURES)
-static inline void ApplyCalibration(CALIB_PARAMS_t* calib, ANALOG_SENSOR_t* analog_sens)
+/**
+ * @brief Apply gain and offset calibration to a raw analog sensor reading
+ *
+ * Computes: calibrated = raw * gain + offset
+ *
+ * @param calib       Pointer to calibration parameters (gain and offset)
+ * @param analog_sens Pointer to the analog sensor structure to update
+ */
+static inline void ApplyCalibration(CALIB_PARAMS_t *calib, ANALOG_SENSOR_t *analog_sens)
 {
     analog_sens->calibrated = analog_sens->raw * calib->gain + calib->offset;
 }
-static inline void ApplyFilterISR0(ANALOG_SENSOR_t* analog_sens)
+
+/**
+ * @brief Run one step of the IIR low-pass filter at the fast (ISR0) rate
+ *
+ * Updates the filter state: filt += (calibrated - filt) * filt_coeff
+ * filt_coeff = w0 * Ts0, so the -3 dB frequency is w0 [rad/s].
+ *
+ * @param analog_sens Pointer to the analog sensor structure to update
+ */
+static inline void ApplyFilterISR0(ANALOG_SENSOR_t *analog_sens)
 {
     analog_sens->filt += (analog_sens->calibrated - analog_sens->filt) * analog_sens->filt_coeff;
 }
 #else
-static inline void ApplyCalibration(CALIB_PARAMS_t* calib, ANALOG_SENSOR_t* analog_sens)
+/**
+ * @brief Bypass calibration: pass raw value through unchanged (add-on features disabled)
+ *
+ * @param calib       Unused calibration parameters
+ * @param analog_sens Pointer to the analog sensor structure to update
+ */
+static inline void ApplyCalibration(CALIB_PARAMS_t *calib, ANALOG_SENSOR_t *analog_sens)
 {
     analog_sens->calibrated = analog_sens->raw;
 }
-static inline void ApplyFilterISR0(ANALOG_SENSOR_t* analog_sens)
+
+/**
+ * @brief Bypass ISR0 IIR filter: forward calibrated value directly (add-on features disabled)
+ *
+ * @param analog_sens Pointer to the analog sensor structure to update
+ */
+static inline void ApplyFilterISR0(ANALOG_SENSOR_t *analog_sens)
 {
     analog_sens->filt = analog_sens->calibrated;
 }
 #endif
 
-static inline void ApplyFilterISR1(ANALOG_SENSOR_t* analog_sens)
+/**
+ * @brief Run one step of the IIR low-pass filter at the slow (ISR1) rate
+ *
+ * Updates the filter state: filt += (calibrated - filt) * filt_coeff
+ * filt_coeff = w0 * Ts1, so the -3 dB frequency is w0 [rad/s].
+ *
+ * @param analog_sens Pointer to the analog sensor structure to update
+ */
+static inline void ApplyFilterISR1(ANALOG_SENSOR_t *analog_sens)
 {
     analog_sens->filt += (analog_sens->calibrated - analog_sens->filt) * analog_sens->filt_coeff;
 }
 
-static inline void ApplyOffset(ANALOG_SENSOR_t* analog_sens, float offset)
+/**
+ * @brief Subtract a DC offset from the calibrated sensor value
+ *
+ * Used to remove auto-generated (online-estimated) bias before the
+ * calibrated value is consumed by the control path.
+ *
+ * @param analog_sens Pointer to the analog sensor structure
+ * @param offset      DC offset to subtract from analog_sens->calibrated
+ */
+static inline void ApplyOffset(ANALOG_SENSOR_t *analog_sens, float offset)
 {
     analog_sens->calibrated -= offset;
 }
 
-static inline void SetUVW(UVW_t* uvw, const float* u, const float* v, const float* w)
+/**
+ * @brief Assign three scalar channel readings into a UVW_t struct
+ *
+ * @param uvw  Pointer to destination UVW_t
+ * @param u    Pointer to the U-phase value
+ * @param v    Pointer to the V-phase value
+ * @param w    Pointer to the W-phase value
+ */
+static inline void SetUVW(UVW_t *uvw, const float *u, const float *v, const float *w)
 {
     uvw->u = *u;
     uvw->v = *v;
     uvw->w = *w;
 }
 
+/** @brief Initialise sensor interface: configure IIR filter coefficients for all phase-current,
+ *         phase-voltage, DC-bus voltage, power-stage temperature, and potentiometer channels;
+ *         compute the auto offset-null loop gain from the configured null time and ISR0 rate;
+ *         set the initial rotation direction to +1.
+ *  @param motor_ptr  Pointer to the motor instance */
 void SENSOR_IFACE_Init(MOTOR_t *motor_ptr)
 {
-    SENSOR_IFACE_t*  sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
-    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    SENSOR_IFACE_t *sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
 #if defined(PC_TEST)
-	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
+    CTRL_t *ctrl_ptr = motor_ptr->ctrl_ptr;
 #endif
 
     // Analog sensors' initializations
@@ -105,15 +169,18 @@ void SENSOR_IFACE_Init(MOTOR_t *motor_ptr)
     sensor_iface_ptr->uvw_idx = &ctrl_ptr->volt_mod.uvw_idx; // must be done by HwInterface based on HW
 #endif
     // Auto offset nulling
-    static const float Offset_Null_Tau_Ratio = 5.0f;	// tau = (null_time/Offset_Null_Tau_Ratio), 1-exp(-5)=0.9933
+    static const float Offset_Null_Tau_Ratio = 5.0f; // tau = (null_time/Offset_Null_Tau_Ratio), 1-exp(-5)=0.9933
     sensor_iface_ptr->offset_null_loop_gain = Offset_Null_Tau_Ratio / (params_ptr->sys.samp.fs0 * params_ptr->sys.analog.offset_null_time);
-    //sensor_iface_ptr->i_uvw_offset_null = UVW_Zero;
+    // sensor_iface_ptr->i_uvw_offset_null = UVW_Zero;
     vars_ptr->dir = +1.0f;
 }
 
+/** @brief Reset sensor interface: clear all IIR filter state registers for phase-current,
+ *         phase-voltage, DC-bus voltage, temperature, and potentiometer channels to zero.
+ *  @param motor_ptr  Pointer to the motor instance */
 void SENSOR_IFACE_Reset(MOTOR_t *motor_ptr)
 {
-	SENSOR_IFACE_t*  sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
+    SENSOR_IFACE_t *sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
 
     // Analog sensors' filter reset
     sensor_iface_ptr->i_u.filt = 0.0f;
@@ -127,6 +194,26 @@ void SENSOR_IFACE_Reset(MOTOR_t *motor_ptr)
     sensor_iface_ptr->pot.filt = 0.0f;
 }
 
+/**
+ * @brief Process phase-current (and optional phase-voltage) sensors at fast ISR rate (ISR0)
+ *
+ * Full current acquisition pipeline:
+ * - Three-shunt / Two-shunt: assigns raw samples to U/V/W (W reconstructed as
+ *   -(U+V) for two-shunt); applies gain/offset calibration; subtracts
+ *   auto-generated DC offsets; runs per-channel IIR filters.
+ * - Single-shunt: calibrates two current samples; subtracts DC offsets;
+ *   reconstructs phase currents from switching state (RFO/SFO: Clarke XYZ mapping;
+ *   TBC open-loop: same XYZ mapping; TBC closed-loop: signed sum weighted by
+ *   high-Z state).
+ * - Applies per-channel ISR0 IIR filters to U/V/W currents.
+ * - Forms i_uvw_fb and Clarke-transforms to i_ab_fb_tot (RFO/SFO) or runs
+ *   BLOCK_COMM_RunCurrSampISR0 (TBC closed-loop).
+ * - If phase voltages are measured: calibrates and filters V_UZ/VZ/WZ;
+ *   computes neutral-point voltage and phase-to-neutral voltages; Clarke-transforms
+ *   to v_ab_fb.
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 RAMFUNC_BEGIN
 
 void SENSOR_IFACE_RunISR0(MOTOR_t *motor_ptr)
@@ -134,27 +221,36 @@ void SENSOR_IFACE_RunISR0(MOTOR_t *motor_ptr)
     // Three shunt:  i_samp -> i_uvw -> calibration -> offset nulling -> filters
     // Single shunt: i_samp -> calibration -> offset nulling -> i_xyz -> i_uvw -> filters
 
-    SENSOR_IFACE_t*  sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    SENSOR_IFACE_t *sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
-    PROFILER_t* profiler_ptr = motor_ptr->profiler_ptr;
+    PROFILER_t *profiler_ptr = motor_ptr->profiler_ptr;
 #endif
-    #if defined(CTRL_METHOD_TBC)
-	CTRL_t* ctrl_ptr = motor_ptr->ctrl_ptr;
-    #endif
-    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+#if defined(CTRL_METHOD_TBC)
+    CTRL_t *ctrl_ptr = motor_ptr->ctrl_ptr;
+#endif
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
-	STATE_MACHINE_t* sm_ptr = motor_ptr->sm_ptr;
+    STATE_MACHINE_t *sm_ptr = motor_ptr->sm_ptr;
 #endif
 
     switch (SHUNT_TYPE)
     {
     default:
     case Three_Shunt:
+    case Two_Shunt:
         // Current reconstruction
         sensor_iface_ptr->i_u.raw = sensor_iface_ptr->i_samp_0.raw;
         sensor_iface_ptr->i_v.raw = sensor_iface_ptr->i_samp_1.raw;
-        sensor_iface_ptr->i_w.raw = sensor_iface_ptr->i_samp_2.raw;
+
+        if (SHUNT_TYPE == Two_Shunt)
+        {
+            sensor_iface_ptr->i_w.raw = -sensor_iface_ptr->i_u.raw - sensor_iface_ptr->i_v.raw;
+        }
+        else
+        {
+            sensor_iface_ptr->i_w.raw = sensor_iface_ptr->i_samp_2.raw;
+        }
 
         // Apply calibration
         ApplyCalibration(&params_ptr->sys.analog.calib.i_u, &sensor_iface_ptr->i_u);
@@ -268,7 +364,7 @@ void SENSOR_IFACE_RunISR0(MOTOR_t *motor_ptr)
     {
         vars_ptr->v_uvw_z_fb = UVW_Zero;
         vars_ptr->v_nz_fb = 0.0f;
-        vars_ptr->v_uvw_n_fb  = UVW_Zero;
+        vars_ptr->v_uvw_n_fb = UVW_Zero;
         vars_ptr->v_ab_fb = AB_Zero;
     }
     phase_voltages_measured_prev = phase_voltages_measured;
@@ -285,15 +381,29 @@ void SENSOR_IFACE_RunISR0(MOTOR_t *motor_ptr)
 }
 RAMFUNC_END
 
+/**
+ * @brief Process slow-rate sensors and route command signals (ISR1)
+ *
+ * Calibrates and filters DC-link voltage, power-stage temperature and
+ * potentiometer signals at the slow ISR rate.
+ * Routes command signals based on the configured source:
+ * - Internal: derives v_dc, temp_ps, cmd_final, brake, fault-clear and direction
+ *   from analog sensor readings
+ * - External: uses externally injected cmd_ext; does not auto-clear faults
+ * Sets the mode-appropriate external command (w_cmd_ext, i_cmd_ext, T_cmd_ext,
+ * p_cmd_ext or profiler w_cmd_final) based on the active control mode.
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 void SENSOR_IFACE_RunISR1(MOTOR_t *motor_ptr)
 {
 
-    SENSOR_IFACE_t*  sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
-    CTRL_VARS_t* vars_ptr = motor_ptr->vars_ptr;
+    SENSOR_IFACE_t *sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
+    CTRL_VARS_t *vars_ptr = motor_ptr->vars_ptr;
 
 #if defined(CTRL_METHOD_RFO) || defined(CTRL_METHOD_SFO)
-	PROFILER_t* profiler_ptr = motor_ptr->profiler_ptr;
+    PROFILER_t *profiler_ptr = motor_ptr->profiler_ptr;
 #endif
 
     // Apply calibration on raw values
@@ -323,13 +433,12 @@ void SENSOR_IFACE_RunISR1(MOTOR_t *motor_ptr)
     {
     case Internal:
     default:
-    	vars_ptr->cmd_final = vars_ptr->cmd_int;
-    	vars_ptr->brk = (sensor_iface_ptr->digital.brk == 1U);
-    	vars_ptr->clr_faults = (vars_ptr->cmd_final < params_ptr->sys.faults.cmd_clr_thresh);
-    	vars_ptr->dir = (sensor_iface_ptr->digital.dir == 1U) ? (+1.0f) : (-1.0f);
+        vars_ptr->cmd_final = vars_ptr->cmd_int;
+        vars_ptr->brk = (sensor_iface_ptr->digital.brk == 1U);
+        vars_ptr->dir = (sensor_iface_ptr->digital.dir == 1U) ? (+1.0f) : (-1.0f);
         break;
     case External:
-    	vars_ptr->cmd_final = vars_ptr->cmd_ext;
+        vars_ptr->cmd_final = vars_ptr->cmd_ext;
         break;
     }
 
@@ -384,17 +493,31 @@ void SENSOR_IFACE_RunISR1(MOTOR_t *motor_ptr)
 #endif
 #if defined(CTRL_METHOD_RFO)
     case Position_Mode_FOC_Encoder_Align_Startup:
-        vars_ptr->p_cmd_ext =vars_ptr->cmd_final*vars_ptr->dir*params_ptr->sys.cmd.p_max;
-         break;
+        vars_ptr->p_cmd_ext = vars_ptr->cmd_final * vars_ptr->dir * params_ptr->sys.cmd.p_max;
+        break;
 #endif
     }
 }
 
+/**
+ * @brief Auto-null phase-current ADC offsets at fast ISR rate (ISR0)
+ *
+ * Runs a narrow-bandwidth IIR integrator on live current samples to
+ * continuously estimate and remove static ADC offset errors:
+ * - Three-shunt: independent IIR accumulator per phase (U, V, W)
+ * - Single-shunt: average of the two sample channels used for V-shunt offset
+ * The bandwidth is: BW [Hz] = offset_null_loop_gain * fs0 / (2*pi)
+ *
+ * @note Should be called only during the motor-stop / gate-off window when
+ *       the true DC offset is observable (no motor current flowing).
+ *
+ * @param motor_ptr Pointer to motor structure
+ */
 RAMFUNC_BEGIN
 void SENSOR_IFACE_OffsetNullISR0(MOTOR_t *motor_ptr)
 {
-    SENSOR_IFACE_t*  sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
-    PARAMS_t* params_ptr = motor_ptr->params_ptr;
+    SENSOR_IFACE_t *sensor_iface_ptr = motor_ptr->sensor_iface_ptr;
+    PARAMS_t *params_ptr = motor_ptr->params_ptr;
     float i_samp_ave;
 
     // IIR bandwidth [Hz] = (loop_gain*fs)/(2*pi)

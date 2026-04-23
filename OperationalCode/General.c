@@ -1,67 +1,80 @@
 /*******************************************************************************
-* Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
-* an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
-*
-* This software, including source code, documentation and related
-* materials ("Software") is owned by Cypress Semiconductor Corporation
-* or one of its affiliates ("Cypress") and is protected by and subject to
-* worldwide patent protection (United States and foreign),
-* United States copyright laws and international treaty provisions.
-* Therefore, you may use this Software only as provided in the license
-* agreement accompanying the software package from which you
-* obtained this Software ("EULA").
-* If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
-* non-transferable license to copy, modify, and compile the Software
-* source code solely for use in connection with Cypress's
-* integrated circuit products.  Any reproduction, modification, translation,
-* compilation, or representation of this Software except as specified
-* above is prohibited without the express written permission of Cypress.
-*
-* Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
-* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
-* reserves the right to make changes to the Software without notice. Cypress
-* does not assume any liability arising out of the application or use of the
-* Software or any product or circuit described in the Software. Cypress does
-* not authorize its products for use in any products where a malfunction or
-* failure of the Cypress product may reasonably be expected to result in
-* significant property damage, injury or death ("High Risk Product"). By
-* including Cypress's product in a High Risk Product, the manufacturer
-* of such system or application assumes all risk of such use and in doing
-* so agrees to indemnify Cypress against all liability.
-*******************************************************************************/
+ * Copyright 2021-2024, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
+ *
+ * This software, including source code, documentation and related
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
+ * worldwide patent protection (United States and foreign),
+ * United States copyright laws and international treaty provisions.
+ * Therefore, you may use this Software only as provided in the license
+ * agreement accompanying the software package from which you
+ * obtained this Software ("EULA").
+ * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
+ * non-transferable license to copy, modify, and compile the Software
+ * source code solely for use in connection with Cypress's
+ * integrated circuit products.  Any reproduction, modification, translation,
+ * compilation, or representation of this Software except as specified
+ * above is prohibited without the express written permission of Cypress.
+ *
+ * Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress
+ * reserves the right to make changes to the Software without notice. Cypress
+ * does not assume any liability arising out of the application or use of the
+ * Software or any product or circuit described in the Software. Cypress does
+ * not authorize its products for use in any products where a malfunction or
+ * failure of the Cypress product may reasonably be expected to result in
+ * significant property damage, injury or death ("High Risk Product"). By
+ * including Cypress's product in a High Risk Product, the manufacturer
+ * of such system or application assumes all risk of such use and in doing
+ * so agrees to indemnify Cypress against all liability.
+ *******************************************************************************/
 
+/**
+ * @file General.c
+ * @brief General utility functions implementation
+ *
+ * Implements PI controllers, coordinate transformations (Clarke, Park),
+ * angle wrapping functions, rate limiters, filters, interpolation functions,
+ * and other mathematical utilities used throughout the control system.
+ */
 
 #include "Controller.h"
 
-UVW_t UVW_Zero = { 0.0f,0.0f,0.0f };
-UVW_t UVW_One = { 1.0f,1.0f,1.0f };
-UVW_t UVW_Half = { 0.5f,0.5f,0.5f };
-AB_t AB_Zero = { 0.0f,0.0f };
-QD_t QD_Zero = { 0.0f,0.0f };
-MINMAX_t MinMax_Zero = { 0.0f,0.0f };
-PARK_t Park_Zero = { 0.0f,1.0f };
-POLAR_t Polar_Zero = { 0.0f,0.0f };
-ELEC_t Elec_Zero = { 0.0f };
-ELEC_t Mech_Zero = { 0.0f };
-ELEC_MECH_t ElecMech_Zero = { 0.0f,0.0f };
+UVW_t UVW_Zero = {0.0f, 0.0f, 0.0f};
+UVW_t UVW_One = {1.0f, 1.0f, 1.0f};
+UVW_t UVW_Half = {0.5f, 0.5f, 0.5f};
+AB_t AB_Zero = {0.0f, 0.0f};
+QD_t QD_Zero = {0.0f, 0.0f};
+MINMAX_t MinMax_Zero = {0.0f, 0.0f};
+PARK_t Park_Zero = {0.0f, 1.0f};
+POLAR_t Polar_Zero = {0.0f, 0.0f};
+ELEC_t Elec_Zero = {0.0f};
+ELEC_t Mech_Zero = {0.0f};
+ELEC_MECH_t ElecMech_Zero = {0.0f, 0.0f};
 
+/** @brief No-op placeholder (void/void) – see General.h for details. */
 RAMFUNC_BEGIN
 void EmptyFcn() {};
 RAMFUNC_END
 
+/** @brief No-op placeholder (void/uint8_t) – see General.h for details. */
 RAMFUNC_BEGIN
-void EmptyFcn_OneArgument(uint8_t  id) {};
+void EmptyFcn_OneArgument(uint8_t id) {};
 RAMFUNC_END
 
+/** @brief No-op placeholder (void/void*) – see General.h for details. */
 RAMFUNC_BEGIN
 void EmptyFcn_PtrArgument(void *ptr) {};
 RAMFUNC_END
+/** @brief Always-true stub – see General.h for details. */
 RAMFUNC_BEGIN
 bool AlwaysTrue(uint8_t  id) { return true; };
 RAMFUNC_END
 
-void PI_Reset(PI_t* pi)
+/** @brief Reset PI controller state – see General.h for details. */
+void PI_Reset(PI_t *pi)
 {
     pi->integ = 0.0f;
 
@@ -69,7 +82,8 @@ void PI_Reset(PI_t* pi)
     pi->output = 0.0f;
 }
 
-void PI_UpdateParams(PI_t* pi, const float kp, const float ki, const float output_min, const float output_max)
+/** @brief Update PI tuning parameters – see General.h for details. */
+void PI_UpdateParams(PI_t *pi, const float kp, const float ki, const float output_min, const float output_max)
 {
     pi->kp = kp;
     pi->ki = ki;
@@ -77,8 +91,9 @@ void PI_UpdateParams(PI_t* pi, const float kp, const float ki, const float outpu
     pi->output_max = output_max;
 }
 
+/** @brief Run PI controller with feed-forward anti-windup – see General.h for details. */
 RAMFUNC_BEGIN
-void PI_Run(PI_t* pi, const float cmd, const float fb, const float ff)
+void PI_Run(PI_t *pi, const float cmd, const float fb, const float ff)
 {
     pi->error = cmd - fb;
     pi->ff = ff;
@@ -102,7 +117,8 @@ void PI_Run(PI_t* pi, const float cmd, const float fb, const float ff)
 }
 RAMFUNC_END
 
-void PI_IntegBackCalc(PI_t* pi, const float output, const float error, const float ff)
+/** @brief Pre-load PI state for bumpless transfer – see General.h for details. */
+void PI_IntegBackCalc(PI_t *pi, const float output, const float error, const float ff)
 {
     pi->error = error;
     pi->ff = ff;
@@ -110,14 +126,16 @@ void PI_IntegBackCalc(PI_t* pi, const float output, const float error, const flo
     pi->integ = output - (error * pi->kp + ff);
 }
 
-void BILINEAR_INTEG_Reset(BILINEAR_INTEG_t* bilinear, const float integ_val)
+/** @brief Reset bilinear integrator – see General.h for details. */
+void BILINEAR_INTEG_Reset(BILINEAR_INTEG_t *bilinear, const float integ_val)
 {
     bilinear->integ = integ_val;
     bilinear->prev_input = 0.0f;
 }
 
+/** @brief Advance bilinear integrator one step – see General.h for details. */
 RAMFUNC_BEGIN
-float BILINEAR_INTEG_Run(BILINEAR_INTEG_t* bilinear, const float input)
+float BILINEAR_INTEG_Run(BILINEAR_INTEG_t *bilinear, const float input)
 {
     bilinear->integ += (bilinear->prev_input + input) * 0.5f;
     bilinear->prev_input = input;
@@ -125,16 +143,18 @@ float BILINEAR_INTEG_Run(BILINEAR_INTEG_t* bilinear, const float input)
 }
 RAMFUNC_END
 
+/** @brief Forward Clarke transform UVW → AB – see General.h for details. */
 RAMFUNC_BEGIN
-void ClarkeTransform(const UVW_t* input, AB_t* output)
+void ClarkeTransform(const UVW_t *input, AB_t *output)
 {
     output->alpha = input->u;
     output->beta = (input->w - input->v) * ONE_OVER_SQRT_THREE;
 }
 RAMFUNC_END
 
+/** @brief Inverse Clarke transform AB → UVW – see General.h for details. */
 RAMFUNC_BEGIN
-void ClarkeTransformInv(const AB_t* input, UVW_t* output)
+void ClarkeTransformInv(const AB_t *input, UVW_t *output)
 {
     output->u = input->alpha;
     output->v = -0.5f * input->alpha - SQRT_THREE_OVER_TWO * input->beta;
@@ -142,8 +162,9 @@ void ClarkeTransformInv(const AB_t* input, UVW_t* output)
 }
 RAMFUNC_END
 
+/** @brief Pre-compute sin/cos for Park transforms via 4-sector LUT – see General.h for details. */
 RAMFUNC_BEGIN
-void ParkInit(const float angle, PARK_t* park)
+void ParkInit(const float angle, PARK_t *park)
 {
     int32_t sector = (int32_t)((angle * TWO_OVER_PI) + (angle >= 0.0f ? 0.0f : -1.0f));
     float th = angle - (sector * PI_OVER_TWO);
@@ -154,19 +175,19 @@ void ParkInit(const float angle, PARK_t* park)
     switch (sector & 0x3)
     {
     default:
-    case 0x0:	// sector 0
+    case 0x0: // sector 0
         park->sine = params_lut.sin.val[index_s] + params_lut.sin.val[index_c] * d_th;
         park->cosine = params_lut.sin.val[index_c] - params_lut.sin.val[index_s] * d_th;
         break;
-    case 0x1:	// sector 1
+    case 0x1: // sector 1
         park->sine = params_lut.sin.val[index_c] - params_lut.sin.val[index_s] * d_th;
         park->cosine = -params_lut.sin.val[index_s] - params_lut.sin.val[index_c] * d_th;
         break;
-    case 0x2:	// sector 2
+    case 0x2: // sector 2
         park->sine = -params_lut.sin.val[index_s] - params_lut.sin.val[index_c] * d_th;
         park->cosine = -params_lut.sin.val[index_c] + params_lut.sin.val[index_s] * d_th;
         break;
-    case 0x3:	// sector 3
+    case 0x3: // sector 3
         park->sine = -params_lut.sin.val[index_c] + params_lut.sin.val[index_s] * d_th;
         park->cosine = params_lut.sin.val[index_s] + params_lut.sin.val[index_c] * d_th;
         break;
@@ -174,16 +195,18 @@ void ParkInit(const float angle, PARK_t* park)
 }
 RAMFUNC_END
 
+/** @brief Forward Park transform AB → QD – see General.h for details. */
 RAMFUNC_BEGIN
-void ParkTransform(const AB_t* input, const PARK_t* park, QD_t* output)
+void ParkTransform(const AB_t *input, const PARK_t *park, QD_t *output)
 {
     output->q = input->alpha * park->cosine - input->beta * park->sine;
     output->d = input->alpha * park->sine + input->beta * park->cosine;
 }
 RAMFUNC_END
 
+/** @brief Inverse Park transform QD → AB – see General.h for details. */
 RAMFUNC_BEGIN
-void ParkTransformInv(const QD_t* input, const PARK_t* park, AB_t* output)
+void ParkTransformInv(const QD_t *input, const PARK_t *park, AB_t *output)
 {
     output->alpha = input->q * park->cosine + input->d * park->sine;
     output->beta = -input->q * park->sine + input->d * park->cosine;
@@ -191,7 +214,7 @@ void ParkTransformInv(const QD_t* input, const PARK_t* park, AB_t* output)
 RAMFUNC_END
 
 RAMFUNC_BEGIN
-static inline float InvTrigLUT(const float input, INV_TRIG_LUT_t* lut) // do not use outside of this source file
+static inline float InvTrigLUT(const float input, INV_TRIG_LUT_t *lut) // do not use outside of this source file
 {
     uint32_t index = SAT(0, INV_TRIG_LUT_WIDTH - 2, (int32_t)(input * lut->step_inv));
     float result = lut->val[index] + (input - index * lut->step) * lut->step_inv * (lut->val[index + 1] - lut->val[index]);
@@ -199,10 +222,11 @@ static inline float InvTrigLUT(const float input, INV_TRIG_LUT_t* lut) // do not
 }
 RAMFUNC_END
 
+/** @brief Four-quadrant arctangent via LUT – see General.h for details. */
 RAMFUNC_BEGIN
 float ATan2(const float y, const float x)
 {
-    INV_TRIG_LUT_t* lut = &params_lut.atan;
+    INV_TRIG_LUT_t *lut = &params_lut.atan;
     uint8_t sector = (IS_POS(y) << 1) | IS_POS(x);
     float theta;
 
@@ -227,10 +251,11 @@ float ATan2(const float y, const float x)
 }
 RAMFUNC_END
 
+/** @brief Arcsine via LUT, output in [-pi/2, +pi/2] – see General.h for details. */
 RAMFUNC_BEGIN
 float ASin(const float y)
 {
-    INV_TRIG_LUT_t* lut = &params_lut.asin;
+    INV_TRIG_LUT_t *lut = &params_lut.asin;
 
     float theta = IS_NEG(y) ? -InvTrigLUT(-y, lut) : +InvTrigLUT(y, lut);
 
@@ -238,10 +263,11 @@ float ASin(const float y)
 }
 RAMFUNC_END
 
+/** @brief Arccosine via LUT, output in [0, +pi] – see General.h for details. */
 RAMFUNC_BEGIN
 float ACos(const float x)
 {
-    INV_TRIG_LUT_t* lut = &params_lut.asin;
+    INV_TRIG_LUT_t *lut = &params_lut.asin;
 
     float theta = IS_NEG(x) ? PI_OVER_TWO + InvTrigLUT(-x, lut) : PI_OVER_TWO - InvTrigLUT(x, lut);
 
@@ -249,9 +275,9 @@ float ACos(const float x)
 }
 RAMFUNC_END
 
-
+/** @brief Convert Cartesian to polar coordinates – see General.h for details. */
 RAMFUNC_BEGIN
-void ToPolar(const float x, const float y, POLAR_t* polar)
+void ToPolar(const float x, const float y, POLAR_t *polar)
 {
     float rad_squared = x * x + y * y;
     polar->rad = sqrtf(rad_squared);
@@ -259,8 +285,9 @@ void ToPolar(const float x, const float y, POLAR_t* polar)
 }
 RAMFUNC_END
 
+/** @brief Linear interpolation from 1D LUT – see General.h for details. */
 RAMFUNC_BEGIN
-float LUT1DInterp(const LUT_1D_t* lut, const float input)
+float LUT1DInterp(const LUT_1D_t *lut, const float input)
 {
     float result;
     if (input < lut->x_min)
@@ -269,7 +296,7 @@ float LUT1DInterp(const LUT_1D_t* lut, const float input)
     }
     else if (input >= lut->x_max)
     {
-        result = lut->y[LUT_1D_WIDTH-1U];
+        result = lut->y[LUT_1D_WIDTH - 1U];
     }
     else
     {
@@ -281,6 +308,7 @@ float LUT1DInterp(const LUT_1D_t* lut, const float input)
 }
 RAMFUNC_END
 
+/** @brief Evaluate y = slope*x + intercept – see General.h for details. */
 RAMFUNC_BEGIN
 float SlopeIntercept(const float slope, const float intercept, const float x)
 {
@@ -288,14 +316,16 @@ float SlopeIntercept(const float slope, const float intercept, const float x)
 }
 RAMFUNC_END
 
-void ScalarBlend(const float ratio, const float x1, const float x2, float* x)
+/** @brief Linearly blend two scalars – see General.h for details. */
+void ScalarBlend(const float ratio, const float x1, const float x2, float *x)
 {
     *x = ratio * x1 + (1.0f - ratio) * x2;
 }
 
-void AngleBlend(const float ratio, const float th1, const float th2, float* th)
+/** @brief Blend two angles across the \u00b1pi boundary – see General.h for details. */
+void AngleBlend(const float ratio, const float th1, const float th2, float *th)
 {
-    float th1_uw, th2_uw;	// unwrapped
+    float th1_uw, th2_uw; // unwrapped
     if ((th1 >= PI_OVER_TWO) && (th2 < -PI_OVER_TWO))
     {
         th1_uw = th1;
@@ -316,12 +346,14 @@ void AngleBlend(const float ratio, const float th1, const float th2, float* th)
     *th = Wrap2Pi(th_uw);
 }
 
-void PolarBlend(const float ratio, const POLAR_t* polar1, const POLAR_t* polar2, POLAR_t* result)
+/** @brief Blend two polar vectors – see General.h for details. */
+void PolarBlend(const float ratio, const POLAR_t *polar1, const POLAR_t *polar2, POLAR_t *result)
 {
     ScalarBlend(ratio, polar1->rad, polar2->rad, &result->rad);
     AngleBlend(ratio, polar1->theta, polar2->theta, &result->theta);
 }
 
+/** @brief Wrap angle to [-pi, pi) – see General.h for details. */
 RAMFUNC_BEGIN
 float Wrap2Pi(const float th)
 {
@@ -330,6 +362,7 @@ float Wrap2Pi(const float th)
 }
 RAMFUNC_END
 
+/** @brief Apply symmetric rate limiter – see General.h for details. */
 RAMFUNC_BEGIN
 float RateLimit(const float rate, const float target, const float current)
 {
@@ -344,8 +377,9 @@ float RateLimit(const float rate, const float target, const float current)
 }
 RAMFUNC_END
 
+/** @brief Sort UVW duties into descending XYZ order with index maps – see General.h for details. */
 RAMFUNC_BEGIN
-void SortUVW(UVW_t* uvw, uint32_t* xyz_idx, uint32_t* uvw_idx)
+void SortUVW(UVW_t *uvw, uint32_t *xyz_idx, uint32_t *uvw_idx)
 {
     if (uvw->u >= uvw->v)
     {
@@ -386,7 +420,8 @@ void SortUVW(UVW_t* uvw, uint32_t* xyz_idx, uint32_t* uvw_idx)
 }
 RAMFUNC_END
 
-void StopWatchInit(TIMER_t* timer, const float time_thresh, const float run_period)
+/** @brief Initialise stopwatch timer – see General.h for details. */
+void StopWatchInit(TIMER_t *timer, const float time_thresh, const float run_period)
 {
     timer->time_thresh = time_thresh;
     timer->run_period = run_period;
@@ -394,52 +429,59 @@ void StopWatchInit(TIMER_t* timer, const float time_thresh, const float run_peri
     StopWatchReset(timer);
 }
 
-void StopWatchReset(TIMER_t* timer)
+/** @brief Reset stopwatch to zero – see General.h for details. */
+void StopWatchReset(TIMER_t *timer)
 {
     timer->time_ticks = 0U;
 }
 
+/** @brief Increment stopwatch by one tick – see General.h for details. */
 RAMFUNC_BEGIN
-void StopWatchRun(TIMER_t* timer)
+void StopWatchRun(TIMER_t *timer)
 {
     timer->time_ticks += (timer->time_ticks < timer->time_thresh_ticks);
 }
 RAMFUNC_END
 
+/** @brief Check if stopwatch has elapsed its threshold – see General.h for details. */
 RAMFUNC_BEGIN
-bool StopWatchIsDone(TIMER_t* timer)
+bool StopWatchIsDone(TIMER_t *timer)
 {
     return (timer->time_ticks >= timer->time_thresh_ticks);
 }
 RAMFUNC_END
 
-float StopWatchGetTime(TIMER_t* timer)
+/** @brief Return elapsed time in seconds – see General.h for details. */
+float StopWatchGetTime(TIMER_t *timer)
 {
     return (timer->time_ticks * timer->run_period);
 }
 
-void (* const DebounceFiltInit)(TIMER_t* timer, const float time_thresh, const float run_period) = &StopWatchInit;
-void (* const DebounceFiltReset)(TIMER_t* timer) = &StopWatchReset;
-void (* const DebounceFiltInc)(TIMER_t* timer) = &StopWatchRun;
-bool (* const DebounceFiltIsSet)(TIMER_t* timer) = &StopWatchIsDone;
-float (* const DebounceFiltGetTime)(TIMER_t* timer) = &StopWatchGetTime;
+void (*const DebounceFiltInit)(TIMER_t *timer, const float time_thresh, const float run_period) = &StopWatchInit;
+void (*const DebounceFiltReset)(TIMER_t *timer) = &StopWatchReset;
+void (*const DebounceFiltInc)(TIMER_t *timer) = &StopWatchRun;
+bool (*const DebounceFiltIsSet)(TIMER_t *timer) = &StopWatchIsDone;
+float (*const DebounceFiltGetTime)(TIMER_t *timer) = &StopWatchGetTime;
 
+/** @brief Decrement debounce counter, saturating at zero – see General.h for details. */
 RAMFUNC_BEGIN
-void DebounceFiltDec(TIMER_t* timer)
+void DebounceFiltDec(TIMER_t *timer)
 {
     timer->time_ticks -= (timer->time_ticks > 0U);
 }
 RAMFUNC_END
 
+/** @brief Check whether debounce counter is zero – see General.h for details. */
 RAMFUNC_BEGIN
-bool DebounceFiltIsClear(TIMER_t* timer)
+bool DebounceFiltIsClear(TIMER_t *timer)
 {
     return (timer->time_ticks == 0U);
 }
 RAMFUNC_END
 
+/** @brief Reset linear regression accumulators – see General.h for details. */
 RAMFUNC_BEGIN
-void LinearRegressionReset(LIN_REG_t* lin_reg)
+void LinearRegressionReset(LIN_REG_t *lin_reg)
 {
     lin_reg->cnt = 0.0f;
     lin_reg->sigma_x = 0.0f;
@@ -450,8 +492,9 @@ void LinearRegressionReset(LIN_REG_t* lin_reg)
 }
 RAMFUNC_END
 
+/** @brief Accumulate one (x,y) sample for linear regression – see General.h for details. */
 RAMFUNC_BEGIN
-void LinearRegressionAddDataPoint(LIN_REG_t* lin_reg, const float x, const float y)
+void LinearRegressionAddDataPoint(LIN_REG_t *lin_reg, const float x, const float y)
 {
     lin_reg->cnt++;
     lin_reg->sigma_x += x;
@@ -462,13 +505,14 @@ void LinearRegressionAddDataPoint(LIN_REG_t* lin_reg, const float x, const float
 }
 RAMFUNC_END
 
+/** @brief Compute slope, intercept and correlation from accumulated data – see General.h for details. */
 RAMFUNC_BEGIN
-void LinearRegressionProcessData(LIN_REG_t* lin_reg)
+void LinearRegressionProcessData(LIN_REG_t *lin_reg)
 {
     lin_reg->var_xx = lin_reg->cnt * lin_reg->sigma_xx - lin_reg->sigma_x * lin_reg->sigma_x;
     lin_reg->var_yy = lin_reg->cnt * lin_reg->sigma_yy - lin_reg->sigma_y * lin_reg->sigma_y;
     lin_reg->cov_xy = lin_reg->cnt * lin_reg->sigma_xy - lin_reg->sigma_x * lin_reg->sigma_y;
-    
+
     lin_reg->m = lin_reg->cov_xy / lin_reg->var_xx;
     lin_reg->r = lin_reg->cov_xy / sqrtf(lin_reg->var_xx * lin_reg->var_yy);
     lin_reg->c = (lin_reg->sigma_y - lin_reg->m * lin_reg->sigma_x) / lin_reg->cnt;
@@ -495,7 +539,8 @@ static const uint8_t PRBS_LUT[15U][4U] =
     {16U, 14U, 13U, 11U},   // 16U
 };
 
-void PseudoRandBinaryInit(PRBS_t* prbs, const uint8_t order)
+/** @brief Initialise a Galois-form maximal-length PRBS generator – see General.h for details. */
+void PseudoRandBinaryInit(PRBS_t *prbs, const uint8_t order)
 {
     prbs->order = SAT(2U, 16U, order);
     prbs->period = ((uint32_t)(1U) << prbs->order) - 1U;
@@ -508,6 +553,7 @@ void PseudoRandBinaryInit(PRBS_t* prbs, const uint8_t order)
     prbs->lfsr = prbs->period; // seed value, 0b111...1
 }
 
+/** @brief Generate the next PRBS output bit – see General.h for details. */
 bool PseudoRandBinaryGen(PRBS_t* prbs)
 {
     uint32_t msb =
